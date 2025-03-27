@@ -91,7 +91,7 @@ Based on the Flutter Doctor output, you need to complete the following setup:
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/winal_drug_shop.git
+   https://github.com/code-gi/winal_drug_shop.git
    cd winal_drug_shop
    ```
 
