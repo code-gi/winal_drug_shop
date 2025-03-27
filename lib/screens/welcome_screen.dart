@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:winal_front_end/screens/about_us_screen.dart';
 import 'package:winal_front_end/screens/animal_medications.dart';
 import 'package:winal_front_end/screens/sign_up_screen.dart';
 import 'package:flutter/material.dart';
@@ -116,7 +117,8 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const SignUpScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(
@@ -144,7 +146,8 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const LoginScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const LoginScreen()),
                       );
                     },
                     style: OutlinedButton.styleFrom(
@@ -259,7 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                       color: Colors.grey,
                     ),
                     onPressed: () {
@@ -316,7 +321,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please enter your email")),
+                        const SnackBar(
+                            content: Text("Please enter your email")),
                       );
                     }
                   },
@@ -391,11 +397,14 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const CallScreen()));
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const CallScreen()));
     } else if (index == 2) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatScreen()));
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const ChatScreen()));
     } else if (index == 3) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => const NotificationsScreen()));
     } else {
       setState(() {
         _selectedIndex = index;
@@ -420,7 +429,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                     backgroundColor: Colors.white,
                     child: Text(
                       widget.userInitials,
-                      style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: Colors.blue, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -443,7 +453,10 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('FAQs'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const FAQsScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const FAQsScreen()));
               },
             ),
             ListTile(
@@ -451,7 +464,10 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('Feedback'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const FeedbackScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const FeedbackScreen()));
               },
             ),
             ListTile(
@@ -459,7 +475,10 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('Health Tips'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const HealthTipsScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const HealthTipsScreen()));
               },
             ),
             ListTile(
@@ -467,7 +486,10 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('About Us'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const AboutUsScreen()));
               },
             ),
             ListTile(
@@ -475,7 +497,10 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('Farm Activities'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => FarmActivitiesScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => FarmActivitiesScreen()));
               },
             ),
             ListTile(
@@ -512,7 +537,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
             backgroundColor: Colors.white,
             child: Text(
               widget.userInitials,
-              style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.blue, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(width: 16),
@@ -568,13 +594,15 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.phone), label: "Call"),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chat"),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notifications"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.notifications), label: "Notifications"),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String title, String imagePath, BuildContext context, VoidCallback onTap) {
+  Widget _buildCategoryItem(String title, String imagePath,
+      BuildContext context, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -730,12 +758,18 @@ class _ChatScreenState extends State<ChatScreen> {
   final Map<String, String> _responseMap = {
     'hello': 'Hello! How can I help you today?',
     'hi': 'Hi there! How can the Winal Drug Shop team assist you?',
-    'medicine': 'We offer a wide range of medicines for both humans and animals. What specific medicine are you looking for?',
-    'prescription': 'You can upload a photo of your prescription using the + button, and our pharmacist will assist you.',
-    'price': 'Prices vary based on the medication. Please let us know which product you\'re interested in.',
-    'location': 'We are located at 123 Health Street. You can also get medications delivered to your location.',
-    'delivery': 'Yes, we offer same-day delivery for orders placed before 2 PM.',
-    'hours': 'We are open Monday to Saturday from 8 AM to 8 PM, and Sunday from 10 AM to 6 PM.',
+    'medicine':
+        'We offer a wide range of medicines for both humans and animals. What specific medicine are you looking for?',
+    'prescription':
+        'You can upload a photo of your prescription using the + button, and our pharmacist will assist you.',
+    'price':
+        'Prices vary based on the medication. Please let us know which product you\'re interested in.',
+    'location':
+        'We are located at 123 Health Street. You can also get medications delivered to your location.',
+    'delivery':
+        'Yes, we offer same-day delivery for orders placed before 2 PM.',
+    'hours':
+        'We are open Monday to Saturday from 8 AM to 8 PM, and Sunday from 10 AM to 6 PM.',
   };
 
   @override
@@ -743,7 +777,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _initSpeech();
     Future.delayed(const Duration(milliseconds: 500), () {
-      _addBotMessage("Hi there! How can I help you with your health needs today?");
+      _addBotMessage(
+          "Hi there! How can I help you with your health needs today?");
     });
   }
 
@@ -790,7 +825,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
     if (!responded) {
-      _addBotMessage("Thank you for your message. One of our pharmacists will respond shortly. Is there anything else I can help you with?");
+      _addBotMessage(
+          "Thank you for your message. One of our pharmacists will respond shortly. Is there anything else I can help you with?");
     }
   }
 
@@ -813,7 +849,8 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         _addUserMessage("[You shared an image: ${pickedFile.name}]");
         Future.delayed(const Duration(milliseconds: 800), () {
-          _addBotMessage("Thank you for sharing your prescription. Our pharmacist will review it and get back to you shortly. Would you like to schedule a pickup or delivery?");
+          _addBotMessage(
+              "Thank you for sharing your prescription. Our pharmacist will review it and get back to you shortly. Would you like to schedule a pickup or delivery?");
         });
       }
     } catch (e) {
@@ -945,7 +982,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
                         Expanded(
@@ -958,7 +996,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                 fontSize: 14,
                               ),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 8.0),
+                              contentPadding:
+                                  EdgeInsets.symmetric(vertical: 8.0),
                             ),
                             onSubmitted: (_) => _handleSendMessage(),
                           ),
@@ -1006,14 +1045,18 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           Expanded(
             child: _messages.isEmpty
-                ? const Center(child: Text("Start a conversation", style: TextStyle(color: Colors.grey)))
+                ? const Center(
+                    child: Text("Start a conversation",
+                        style: TextStyle(color: Colors.grey)))
                 : ListView.builder(
                     padding: const EdgeInsets.all(10),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
                       final message = _messages[index];
                       return Align(
-                        alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: message.isUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 5),
                           padding: const EdgeInsets.all(12),
@@ -1034,7 +1077,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Text(
                             message.text,
                             style: TextStyle(
-                              color: message.isUser ? Colors.white : Colors.black,
+                              color:
+                                  message.isUser ? Colors.white : Colors.black,
                             ),
                           ),
                         ),
@@ -1104,7 +1148,8 @@ class NotificationsScreen extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 16),
+            padding:
+                const EdgeInsets.only(top: 40, left: 16, right: 16, bottom: 16),
             decoration: const BoxDecoration(
               color: Colors.blue,
             ),
@@ -1140,14 +1185,16 @@ class NotificationsScreen extends StatelessWidget {
                 children: [
                   NotificationCard(
                     title: 'Limited Exclusive: Unmissable',
-                    message: 'Get supplements at just UGX 800 per tablet. Dont miss out shop now',
+                    message:
+                        'Get supplements at just UGX 800 per tablet. Dont miss out shop now',
                     date: 'March 15, 2025',
                     borderColor: Colors.blue[100]!,
                   ),
                   const SizedBox(height: 12),
                   NotificationCard(
                     title: 'Price Drop',
-                    message: 'Save BIG ON antibiotics, shop now and dont miss out',
+                    message:
+                        'Save BIG ON antibiotics, shop now and dont miss out',
                     date: 'March 14, 2025',
                     borderColor: Colors.blue[100]!,
                   ),
@@ -1161,7 +1208,8 @@ class NotificationsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   NotificationCard(
                     title: 'Health Update: No Animal Disease Outbreaks',
-                    message: 'As of March 17, 2025, no major animal disease outbreaks have been reported in Uganda. However, reductions in U.S. aid may impact malaria control, affecting both human and animal health.',
+                    message:
+                        'As of March 17, 2025, no major animal disease outbreaks have been reported in Uganda. However, reductions in U.S. aid may impact malaria control, affecting both human and animal health.',
                     date: 'March 17, 2025',
                     borderColor: Colors.red[100]!,
                   ),
@@ -1272,11 +1320,14 @@ class _FAQsScreenState extends State<FAQsScreen> {
     },
     {
       'question': 'Which delivery options are available?',
-      'answer': 'We offer delivery through public taxis and buses, as well as private courier services.'
+      'answer':
+          'We offer delivery through public taxis and buses, as well as private courier services.'
     },
     {
-      'question': 'Who is responsible for the damages to orders delivered through public means?',
-      'answer': 'We ensure secure packaging but are not liable for damages caused by third-party transportation.'
+      'question':
+          'Who is responsible for the damages to orders delivered through public means?',
+      'answer':
+          'We ensure secure packaging but are not liable for damages caused by third-party transportation.'
     },
   ];
 
@@ -1298,7 +1349,7 @@ class _FAQsScreenState extends State<FAQsScreen> {
     setState(() {
       _filteredFaqs = _faqs.where((faq) {
         return faq['question']!.toLowerCase().contains(query) ||
-               faq['answer']!.toLowerCase().contains(query);
+            faq['answer']!.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -1398,7 +1449,6 @@ class _FAQsScreenState extends State<FAQsScreen> {
 class FeedbackScreen extends StatelessWidget {
   const FeedbackScreen({Key? key}) : super(key: key);
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1407,7 +1457,8 @@ class FeedbackScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text('Feedback', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text('Feedback',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             const Text('Rate your experience:'),
             Row(
@@ -1415,7 +1466,10 @@ class FeedbackScreen extends StatelessWidget {
               children: ['Excellent', 'Good', 'Average', 'Fair', 'Poor']
                   .map((rating) => Row(
                         children: [
-                          Radio(value: rating, groupValue: null, onChanged: (value) {}),
+                          Radio(
+                              value: rating,
+                              groupValue: null,
+                              onChanged: (value) {}),
                           Text(rating),
                         ],
                       ))
@@ -1446,7 +1500,6 @@ class FeedbackScreen extends StatelessWidget {
   }
 }
 
-
 // HEALTH TIPS SCREEN
 class HealthTipsScreen extends StatefulWidget {
   const HealthTipsScreen({Key? key}) : super(key: key);
@@ -1455,30 +1508,50 @@ class HealthTipsScreen extends StatefulWidget {
   _HealthTipsScreenState createState() => _HealthTipsScreenState();
 }
 
+// ANIMAL MEDS
+class AnimalMedsScreen extends StatefulWidget {
+  final String userEmail;
+  final String userInitials;
+
+  const AnimalMedsScreen({
+    Key? key,
+    required this.userEmail,
+    required this.userInitials,
+  }) : super(key: key);
+
+  @override
+  _AnimalMedsScreenState createState() => _AnimalMedsScreenState();
+}
+
 class _HealthTipsScreenState extends State<HealthTipsScreen> {
   final List<Map<String, dynamic>> healthTips = [
     {
       'image': 'assets/images/WATER.jpeg',
       'title': 'Drink plenty of water daily',
-      'description': 'Drink plenty of water daily to keep your skin glowing and your body energized during festive celebrations.',
-      'tip': '💧 Tip: Pair with our hydrating skincare products for radiant skin!',
+      'description':
+          'Drink plenty of water daily to keep your skin glowing and your body energized during festive celebrations.',
+      'tip':
+          '💧 Tip: Pair with our hydrating skincare products for radiant skin!',
     },
     {
       'image': 'assets/images/DIET.jpeg',
       'title': 'Eat a balanced diet',
-      'description': 'Include fruits, vegetables, and lean proteins in your meals to stay healthy and energetic.',
+      'description':
+          'Include fruits, vegetables, and lean proteins in your meals to stay healthy and energetic.',
       'tip': null,
     },
     {
       'image': 'assets/images/WALK.jpeg',
       'title': 'Stay Active',
-      'description': 'Take walks or participate in family activities to stay fit while enjoying the season.',
+      'description':
+          'Take walks or participate in family activities to stay fit while enjoying the season.',
       'tip': '🏃‍♂️ Tip: Support your joints with our wellness supplements.',
     },
     {
       'image': 'assets/images/IMMUNITY.jpeg',
       'title': 'Boost your immunity',
-      'description': 'Stock up on vitamin C and zinc to boost your immunity and stay healthy.',
+      'description':
+          'Stock up on vitamin C and zinc to boost your immunity and stay healthy.',
       'tip': 'Tip: Explore your immune boosting supplements.',
     },
   ];
@@ -1573,54 +1646,20 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
   }
 }
 
-
-
-// ABOUT US 
-class AboutUsScreen extends StatelessWidget {
-  const AboutUsScreen({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('About Us')),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('About Us', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            Text('Welcome to Winal Drug Shop, your trusted partner in veterinary and agricultural health solutions...'),
-            SizedBox(height: 20),
-            Text('Contact Us', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Phone: +256 704550075'),
-            Text('Email: winaldrugshop@gmail.com'),
-            Text('Location: Nateete, Uganda'),
-            SizedBox(height: 20),
-            Text('Terms and Conditions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('1. General Information\nWinal Drug Shop provides a wide range of medications...'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
 // ANIMAL MEDS
-class AnimalMedsScreen extends StatefulWidget {
-  final String userEmail;
-  final String userInitials;
+// class AnimalMedsScreen extends StatefulWidget {
+//   final String userEmail;
+//   final String userInitials;
 
-  const AnimalMedsScreen({
-    Key? key,
-    required this.userEmail,
-    required this.userInitials,
-  }) : super(key: key);
+//   const AnimalMedsScreen({
+//     Key? key,
+//     required this.userEmail,
+//     required this.userInitials,
+//   }) : super(key: key);
 
-  @override
-  _AnimalMedsScreenState createState() => _AnimalMedsScreenState();
-}
+//   @override
+//   _AnimalMedsScreenState createState() => _AnimalMedsScreenState();
+// }
 
 class _AnimalMedsScreenState extends State<AnimalMedsScreen> {
   final List<Product> products = [
@@ -1667,7 +1706,8 @@ class _AnimalMedsScreenState extends State<AnimalMedsScreen> {
 
   void addToCart(Product product) {
     setState(() {
-      final existingIndex = cart.indexWhere((item) => item.product.id == product.id);
+      final existingIndex =
+          cart.indexWhere((item) => item.product.id == product.id);
       if (existingIndex >= 0) {
         cart[existingIndex].quantity += 1;
       } else {
@@ -1681,7 +1721,8 @@ class _AnimalMedsScreenState extends State<AnimalMedsScreen> {
   }
 
   int get totalPrice {
-    return cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+    return cart.fold(
+        0, (sum, item) => sum + (item.product.price * item.quantity));
   }
 
   void toggleCart() {
@@ -1927,7 +1968,6 @@ class CartPopup extends StatelessWidget {
     required this.cart,
     required this.totalPrice,
     required this.onClose,
-
   }) : super(key: key);
 
   @override
@@ -2054,7 +2094,8 @@ class CartPopup extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 64, 108, 230),
+                        backgroundColor:
+                            const Color.fromARGB(255, 64, 108, 230),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(
@@ -2075,9 +2116,7 @@ class CartPopup extends StatelessWidget {
   }
 }
 
-
 // HUMAN MEDS
-
 
 class MedicineApp extends StatelessWidget {
   final String userEmail;
@@ -2161,14 +2200,19 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _selectedPaymentMethod;
-  final List<String> _paymentMethods = ['Cash on Delivery', 'Mobile Money', 'Credit Card'];
+  final List<String> _paymentMethods = [
+    'Cash on Delivery',
+    'Mobile Money',
+    'Credit Card'
+  ];
   final TextEditingController _whereToController = TextEditingController();
   final TextEditingController _whereFromController = TextEditingController();
   final double deliveryFee = 5000;
-  
+
   // Google Maps variables
   GoogleMapController? _mapController;
-  static const LatLng _winalDrugShop = LatLng(0.3025, 32.5539); // Approximate coordinates for Nateete, Kampala
+  static const LatLng _winalDrugShop =
+      LatLng(0.3025, 32.5539); // Approximate coordinates for Nateete, Kampala
   final Set<Marker> _markers = {};
 
   @override
@@ -2309,7 +2353,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _selectedPaymentMethod = newValue;
                 });
               },
-              items: _paymentMethods.map<DropdownMenuItem<String>>((String value) {
+              items:
+                  _paymentMethods.map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -2337,19 +2382,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 onPressed: () {
                   if (_whereToController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter delivery address')),
+                      const SnackBar(
+                          content: Text('Please enter delivery address')),
                     );
                     return;
                   }
                   if (_selectedPaymentMethod == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a payment method')),
+                      const SnackBar(
+                          content: Text('Please select a payment method')),
                     );
                     return;
                   }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Order placed successfully using $_selectedPaymentMethod!'),
+                      content: Text(
+                          'Order placed successfully using $_selectedPaymentMethod!'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -2409,6 +2457,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 }
+
 // farm activities
 class FarmActivitiesScreen extends StatelessWidget {
   // List of activities with their labels and placeholder image paths
@@ -2424,7 +2473,8 @@ class FarmActivitiesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set background color to white to match the image
+      backgroundColor:
+          Colors.white, // Set background color to white to match the image
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -2448,7 +2498,8 @@ class FarmActivitiesScreen extends StatelessWidget {
             crossAxisCount: 2, // 2 columns
             crossAxisSpacing: 8.0, // Spacing between columns
             mainAxisSpacing: 8.0, // Spacing between rows
-            childAspectRatio: 0.7, // Adjusted to make images slightly larger and fit better
+            childAspectRatio:
+                0.7, // Adjusted to make images slightly larger and fit better
           ),
           itemCount: activities.length,
           itemBuilder: (context, index) {
@@ -2476,11 +2527,13 @@ class ActivityCard extends StatelessWidget {
         // Rectangular image container with rounded corners
         Container(
           width: double.infinity, // Take full width of the grid cell
-          height: 130, // Slightly increased height to match the image proportions
+          height:
+              130, // Slightly increased height to match the image proportions
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10), // Rounded corners
             image: DecorationImage(
-              image: AssetImage(imagePath), // Use the image path (untouched as requested)
+              image: AssetImage(
+                  imagePath), // Use the image path (untouched as requested)
               fit: BoxFit.cover, // Ensure the image covers the container
             ),
           ),

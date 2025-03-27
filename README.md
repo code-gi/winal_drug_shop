@@ -52,6 +52,22 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
 - Android Emulator / iOS Simulator / Physical device
 - Google Maps API Key (for location features)
 
+### Important Note About System-Specific Configurations
+
+This project contains system-specific configuration files that will need to be adjusted when cloning to a different machine:
+
+1. **local.properties**: Located in the `android/` folder, this file contains paths specific to your development environment:
+   ```properties
+   sdk.dir=C:\\Users\\YourUsername\\AppData\\Local\\Android\\sdk
+   flutter.sdk=Path\\To\\Your\\Flutter\\SDK
+   ```
+   
+   These paths must be updated to match your specific system setup. The file is automatically generated when you first build the project, but you may need to modify it if:
+   - Your Android SDK is installed in a non-standard location
+   - Your Flutter SDK is installed somewhere other than the default location
+
+2. **Asset paths in pubspec.yaml**: Make sure any asset paths use relative paths, not absolute paths that include system-specific directories.
+
 ### Development Environment Setup
 
 Based on the Flutter Doctor output, you need to complete the following setup:
@@ -199,6 +215,28 @@ If you encounter any issues with Flutter setup:
    ```bash
    flutter doctor -v
    ```
+
+## Troubleshooting Common Issues
+
+If you encounter build errors after cloning this project:
+
+1. **NDK Version Issues**: 
+   This project uses a specific NDK version (25.1.8937393) set in `android/app/build.gradle`. If you encounter NDK-related errors, ensure this version is installed or update it to a version available on your system.
+
+2. **Java Compatibility Issues**:
+   If you're using Java 21 or higher, make sure your Android Gradle Plugin (AGP) version is at least 8.2.1 (set in `android/settings.gradle`).
+
+3. **Path Inconsistencies**:
+   Check `android/local.properties` to ensure the paths match your system configuration:
+   ```
+   sdk.dir=[Path to your Android SDK]
+   flutter.sdk=[Path to your Flutter SDK]
+   ```
+
+4. **Asset Not Found Errors**:
+   If you see "No file or variants found for asset" errors, ensure that:
+   - All referenced assets exist in your project
+   - You're using relative paths in pubspec.yaml (assets/images/) not absolute paths
 
 ## Contributing
 
