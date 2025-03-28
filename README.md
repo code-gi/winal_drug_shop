@@ -26,7 +26,7 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
 
 - Flutter (SDK 3.29.2)
 - Dart (3.0.0+)
-- State Management: Provider/Bloc (specify which one you use)
+- State Management: Provider/Bloc
 - Google Maps for location features
 - Image handling with image_picker
 - Speech recognition capabilities
