@@ -4,12 +4,7 @@ import 'human_medications.dart';
 import 'call_screen.dart';
 import 'chat_screen.dart';
 import 'notifications_screen.dart';
-import 'about_us_screen.dart' as aus;
-import 'faqs_screen.dart';
-import 'feedback_screen.dart';
-import 'health_tips_screen.dart';
-import 'farm_activities_screen.dart';
-import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class MedicationsScreen extends StatefulWidget {
   final String userEmail;
@@ -158,12 +153,22 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
           ),
         ),
         actions: [
-          CircleAvatar(
-            backgroundColor: Colors.white,
-            child: Text(
-              getInitials(widget.userEmail),
-              style: const TextStyle(
-                  color: Colors.blue, fontWeight: FontWeight.bold),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            child: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                getInitials(widget.userEmail),
+                style: const TextStyle(
+                    color: Colors.blue, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           const SizedBox(width: 16),

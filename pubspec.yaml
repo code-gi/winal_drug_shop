@@ -45,6 +45,12 @@ dependencies:
   flutter_animate: ^4.2.0
   animations: ^2.0.7
   glassmorphism: ^3.0.0
+  # Added for backend integration
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+  provider: ^6.0.5
+  flutter_secure_storage: ^9.0.0
+  connectivity_plus: ^5.0.2
 
 dev_dependencies:
   flutter_test:

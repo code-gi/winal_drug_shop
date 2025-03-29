@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:winal_front_end/screens/welcome_screen.dart' hide SplashScreen;
 import 'package:winal_front_end/screens/splash_screen.dart';
 import 'package:winal_front_end/screens/sign_up_screen.dart' hide LoginScreen;
@@ -16,9 +17,18 @@ import 'package:winal_front_end/screens/checkout_screen.dart';
 import 'package:winal_front_end/screens/faqs_screen.dart';
 import 'package:winal_front_end/screens/feedback_screen.dart';
 import 'package:winal_front_end/screens/health_tips_screen.dart';
+import 'package:winal_front_end/screens/profile_screen.dart';
+import 'package:winal_front_end/utils/auth_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -52,6 +62,7 @@ class MyApp extends StatelessWidget {
         '/faqs': (context) => const FAQsScreen(),
         '/feedback': (context) => const FeedbackScreen(),
         '/health_tips': (context) => const HealthTipsScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

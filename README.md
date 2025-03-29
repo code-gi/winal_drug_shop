@@ -11,7 +11,11 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
 
 ## Features
 
-- **Authentication**: Login, Sign-up, and Password Recovery
+- **Authentication**: 
+  - **Login**: Secure JWT-based authentication
+  - **Sign-up**: Create new accounts with form validation
+  - **Password Recovery**: Reset password via email
+  - **Profile Management**: View and update user information (Coming Soon)
 - **Medication Catalog**: Browse medications for humans and animals
 - **Communication**: Chat with pharmacists and make video calls for consultation
 - **Farm Activities**: Track and manage farm-related activities
