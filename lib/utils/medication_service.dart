@@ -51,6 +51,9 @@ class MedicationService {
       // Make the HTTP request
       final response = await http.get(uri);
 
+      developer.log('Response status code: ${response.statusCode}');
+      developer.log('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
+import 'dart:developer' as developer;
 
 class DynamicMedicationsScreen extends StatefulWidget {
   final String userEmail;
@@ -30,10 +31,15 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
   void initState() {
     super.initState();
 
+    print(
+        '==== DynamicMedicationsScreen initialized for ${widget.medicationType} ====');
+
     // Load medications and categories on init based on the medication type
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('Loading medications and categories for ${widget.medicationType}');
       final medicationProvider =
           Provider.of<MedicationProvider>(context, listen: false);
+
       medicationProvider.loadMedications(medicationType: widget.medicationType);
       medicationProvider.loadCategories(medicationType: widget.medicationType);
     });
@@ -67,6 +73,8 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
+              developer.log(
+                  '🔄 Refreshing medications for type: ${widget.medicationType}');
               final medicationProvider =
                   Provider.of<MedicationProvider>(context, listen: false);
               medicationProvider.loadMedications(
@@ -112,71 +120,75 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
           SizedBox(
             height: 50,
             child: Consumer<MedicationProvider>(
-              builder: (context, provider, child) {
-                return ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  itemCount:
-                      provider.categories.length + 1, // +1 for "All" category
-                  itemBuilder: (context, index) {
-                    // "All" category
-                    if (index == 0) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        child: ChoiceChip(
-                          label: const Text('All'),
-                          selected: _selectedCategoryId == null,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _selectedCategoryId = null;
-                              });
-                              provider.loadMedications(
-                                categoryId: null,
-                                medicationType: widget.medicationType,
-                              );
-                            }
-                          },
-                        ),
-                      );
-                    }
-
-                    // Category chips
-                    final category = provider.categories[index - 1];
+                builder: (context, provider, child) {
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                itemCount:
+                    provider.categories.length + 1, // +1 for "All" category
+                itemBuilder: (context, index) {
+                  // "All" category
+                  if (index == 0) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       child: ChoiceChip(
-                        label: Text(category['name']),
-                        selected: _selectedCategoryId == category['id'],
+                        label: const Text('All'),
+                        selected: _selectedCategoryId == null,
                         onSelected: (selected) {
                           if (selected) {
                             setState(() {
-                              _selectedCategoryId = category['id'];
+                              _selectedCategoryId = null;
                             });
                             provider.loadMedications(
-                              categoryId: category['id'],
+                              categoryId: null,
                               medicationType: widget.medicationType,
                             );
                           }
                         },
                       ),
                     );
-                  },
-                );
-              },
-            ),
+                  }
+
+                  // Category chips
+                  final category = provider.categories[index - 1];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: ChoiceChip(
+                      label: Text(category['name']),
+                      selected: _selectedCategoryId == category['id'],
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _selectedCategoryId = category['id'];
+                          });
+                          provider.loadMedications(
+                            categoryId: category['id'],
+                            medicationType: widget.medicationType,
+                          );
+                        }
+                      },
+                    ),
+                  );
+                },
+              );
+            }),
           ),
 
           // Medications grid
           Expanded(
             child: Consumer<MedicationProvider>(
               builder: (context, provider, child) {
+                developer.log(
+                    '📊 Provider state: isLoading=${provider.isLoading}, hasError=${provider.errorMessage != null}, medicationsCount=${provider.medications.length}');
+
                 if (provider.isLoading && provider.medications.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (provider.errorMessage != null &&
                     provider.medications.isEmpty) {
+                  developer.log('❌ Error: ${provider.errorMessage}',
+                      error: provider.errorMessage);
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -201,12 +213,22 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
                 }
 
                 if (provider.medications.isEmpty) {
+                  developer.log(
+                      '⚠️ No medications found for type: ${widget.medicationType}');
                   return const Center(
                     child: Text(
                       'No medications found.',
                       style: TextStyle(fontSize: 16),
                     ),
                   );
+                }
+
+                developer.log(
+                    '✅ Showing ${provider.medications.length} medications');
+                // Log the first medication to see its structure
+                if (provider.medications.isNotEmpty) {
+                  developer
+                      .log('📋 First medication: ${provider.medications[0]}');
                 }
 
                 return GridView.builder(
@@ -227,29 +249,65 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
 
                     final medication = provider.medications[index];
                     final baseUrl = provider.baseUrl;
-                    String imageUrl = '/static/images/default_medication.jpg';
+                    String imageUrl =
+                        'assets/images/SYRUP.jpeg'; // Default fallback image
 
                     // Check if medication has an image
                     if (medication['images'] != null &&
                         medication['images'].isNotEmpty) {
                       for (var image in medication['images']) {
                         if (image['is_primary'] == true) {
-                          imageUrl = image['url'];
-                          break;
+                          // Check both 'url' and 'image_url' fields for compatibility
+                          String? url = image['url'] ?? image['image_url'];
+                          if (url != null) {
+                            // If image url starts with 'assets/', use it directly as an asset
+                            if (url.startsWith('assets/')) {
+                              imageUrl = url;
+                            } else {
+                              // Otherwise treat as a network image
+                              imageUrl = url;
+                              if (imageUrl.startsWith('/')) {
+                                imageUrl = '$baseUrl$imageUrl';
+                              }
+                            }
+                            break;
+                          }
                         }
                       }
 
                       // If no primary image, use the first one
-                      if (imageUrl == '/static/images/default_medication.jpg' &&
+                      if (imageUrl == 'assets/images/SYRUP.jpeg' &&
                           medication['images'].isNotEmpty) {
-                        imageUrl = medication['images'][0]['url'];
+                        String? url = medication['images'][0]['url'] ??
+                            medication['images'][0]['image_url'];
+                        if (url != null) {
+                          if (url.startsWith('assets/')) {
+                            imageUrl = url;
+                          } else {
+                            imageUrl = url;
+                            if (imageUrl.startsWith('/')) {
+                              imageUrl = '$baseUrl$imageUrl';
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      // If no images array, check for a direct image_url field
+                      if (medication['image_url'] != null) {
+                        String url = medication['image_url'];
+                        if (url.startsWith('assets/')) {
+                          imageUrl = url;
+                        } else {
+                          imageUrl = url;
+                          if (imageUrl.startsWith('/')) {
+                            imageUrl = '$baseUrl$imageUrl';
+                          }
+                        }
                       }
                     }
 
-                    // Make sure the URL is absolute
-                    if (imageUrl.startsWith('/')) {
-                      imageUrl = '$baseUrl$imageUrl';
-                    }
+                    // Determine if this is a network image or an asset image
+                    final bool isNetworkImage = !imageUrl.startsWith('assets/');
 
                     return Card(
                       elevation: 3,
@@ -275,16 +333,30 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
                                 height: 120,
                                 width: double.infinity,
                                 color: Colors.grey[200],
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return const Center(
-                                      child: Icon(Icons.image_not_supported,
-                                          size: 40),
-                                    );
-                                  },
-                                ),
+                                child: isNetworkImage
+                                    ? Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Image.asset(
+                                            'assets/images/SYRUP.jpeg',
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
+                                      )
+                                    : Image.asset(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return const Center(
+                                            child: Icon(
+                                                Icons.image_not_supported,
+                                                size: 40),
+                                          );
+                                        },
+                                      ),
                               ),
                             ),
 

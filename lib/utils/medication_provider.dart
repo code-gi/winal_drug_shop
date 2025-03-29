@@ -71,6 +71,9 @@ class MedicationProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
+      print(
+          '🔍 LOADING MEDICATIONS: Type: $_currentMedicationType, Category: $_currentCategoryId, Page: $_currentPage');
+
       final result = await _medicationService.getMedications(
         medicationType: _currentMedicationType,
         categoryId: _currentCategoryId,
@@ -79,8 +82,18 @@ class MedicationProvider extends ChangeNotifier {
         pageSize: 10,
       );
 
+      print(
+          '📦 RESULT: ${result.toString().substring(0, result.toString().length > 300 ? 300 : result.toString().length)}...');
+      print(
+          '📝 MEDICATIONS COUNT IN RESPONSE: ${result['medications'].length}');
+
       final newMedications =
           List<Map<String, dynamic>>.from(result['medications']);
+
+      print('🆕 NEW MEDICATIONS: ${newMedications.length}');
+      if (newMedications.isNotEmpty) {
+        print('📋 FIRST MEDICATION: ${newMedications[0]}');
+      }
 
       if (resetPage) {
         _medications = newMedications;
@@ -93,6 +106,9 @@ class MedicationProvider extends ChangeNotifier {
       final currentCount = _medications.length;
       _hasMorePages = currentCount < totalItems;
 
+      print(
+          '📊 TOTALS: Items=${totalItems}, Current Count=${currentCount}, Has More=${_hasMorePages}');
+
       // Increment the page for the next load
       if (_hasMorePages) {
         _currentPage++;
@@ -101,6 +117,7 @@ class MedicationProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      print('❌ ERROR LOADING MEDICATIONS: ${e.toString()}');
       _isLoading = false;
       _errorMessage = e.toString();
       notifyListeners();

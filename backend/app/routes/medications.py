@@ -32,6 +32,15 @@ def get_medications():
     # Format response
     medications = []
     for med in paginated_medications.items:
+        # Get medication images
+        images = []
+        for img in med.images:
+            images.append({
+                'id': img.id,
+                'url': img.image_url,
+                'is_primary': img.is_primary
+            })
+            
         medications.append({
             'id': med.id,
             'name': med.name,
@@ -39,9 +48,11 @@ def get_medications():
             'price': med.price,
             'stock_quantity': med.stock_quantity,
             'medication_type': med.medication_type,
-            'category': med.category.name if med.category else None,
+            'category_id': med.category_id,
+            'category_name': med.category.name if med.category else None,
             'requires_prescription': med.requires_prescription,
             'thumbnail_url': med.get_thumbnail_url(),
+            'images': images,
             'created_at': med.created_at.strftime('%Y-%m-%d %H:%M:%S')
         })
     

@@ -286,3 +286,83 @@ backend/
    - Ensure frontend domain is whitelisted in CORS configuration
    - Check that credentials are included in CORS requests
    - Verify proper headers are set in requests
+
+## Database Structure
+
+### Medications and Images
+
+The application uses multiple related tables to store medication information:
+
+- **categories**: Defines medication categories for both human and animal medications
+- **medications**: Stores all medication details including name, description, price, etc.
+- **medication_images**: Links images to specific medications
+
+```
+medications
+├── id                     # Primary key
+├── name                   # Medication name
+├── description            # Short description
+├── full_details           # Detailed information
+├── price                  # Price in local currency
+├── stock_quantity         # Available quantity
+├── medication_type        # 'human' or 'animal'
+├── category_id            # Foreign key to categories
+├── requires_prescription  # Boolean flag
+├── dosage_instructions    # How to take the medication
+├── contraindications      # When not to use
+├── side_effects           # Potential side effects
+├── storage_instructions   # How to store
+└── timestamps             # created_at, updated_at
+
+medication_images
+├── id                     # Primary key
+├── medication_id          # Foreign key to medications
+├── image_url              # Path to image file
+├── is_primary             # Boolean flag for main image
+└── created_at             # Timestamp
+```
+
+## Image Handling
+
+The application serves medication images from the assets folder. The migration script automatically links these images to their corresponding medications in the database.
+
+### Available Endpoints for Medication Images
+
+- `GET /api/medications/{id}/images` - Get all images for a specific medication
+  - **Response (200)**:
+    ```json
+    {
+      "images": [
+        {
+          "id": 1,
+          "medication_id": 1,
+          "image_url": "assets/images/antibiotics.jpeg",
+          "is_primary": true,
+          "created_at": "2025-03-29T12:00:00Z"
+        }
+      ]
+    }
+    ```
+
+### How to Use Medication Images in Frontend
+
+1. The Flutter app should fetch medication data including the image URLs
+2. Image paths should be resolved relative to the app's asset directory
+3. For network images, prefix with the API base URL
+
+Example Flutter code for displaying a medication image:
+```dart
+Image.asset(
+  medication.imageUrl,
+  fit: BoxFit.cover,
+)
+```
+
+### Displaying Medications
+
+When implementing the medication display screens, use the following API endpoints:
+
+- `GET /api/medications?type=human` - Get all human medications with their images
+- `GET /api/medications?type=animal` - Get all animal medications with their images
+
+## Development Roadmap

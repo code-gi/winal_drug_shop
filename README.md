@@ -16,7 +16,11 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
   - **Sign-up**: Create new accounts with form validation
   - **Password Recovery**: Reset password via email
   - **Profile Management**: View and update user information (Coming Soon)
-- **Medication Catalog**: Browse medications for humans and animals
+- **Medication Catalog**: 
+  - Browse medications for humans and animals
+  - View medication images, details, prices, and stock availability
+  - Filter medications by category
+  - Check medication's prescription requirements
 - **Communication**: Chat with pharmacists and make video calls for consultation
 - **Farm Activities**: Track and manage farm-related activities
 - **Notifications**: Get reminders and updates
@@ -25,6 +29,36 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
 ## Screenshots
 
 <!-- Add screenshots here once available -->
+
+## Using the Application
+
+### Browsing Medications
+
+1. **Home Screen**: After logging in, you'll see the main dashboard with various options.
+2. **Medication Types**: Choose between "Human Medications" or "Animal Medications" sections.
+3. **Categories**: Browse medications by category (e.g., Antibiotics, Painkillers, etc.)
+4. **Medication Details**: Tap on any medication to view:
+   - Medication images
+   - Full description and details
+   - Price and availability
+   - Dosage instructions
+   - Side effects and contraindications
+   - Storage instructions
+
+### Managing Prescriptions
+
+Some medications require prescriptions. For these:
+1. Upload your prescription through the app
+2. Wait for verification by our pharmacists
+3. Once approved, you can purchase the medication
+
+### Troubleshooting
+
+If you see "No medications found" when browsing:
+- Check your internet connection
+- Ensure the backend server is running
+- Try refreshing the page
+- Contact support if the issue persists
 
 ## Tech Stack
 
@@ -41,113 +75,40 @@ Winal Drug Shop is a mobile application that allows users to browse, search, and
 - font_awesome_flutter: ^10.8.0
 - carousel_slider: ^5.0.0
 - image_picker: ^1.1.2
-- permission_handler: ^11.4.0
-- speech_to_text: ^7.0.0
-- google_maps_flutter: ^2.12.0
-- geolocator: ^13.0.3
-
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK (3.29.2 or compatible version)
-- Dart SDK (3.0.0 or higher)
-- Android Studio / VS Code
-- Android Emulator / iOS Simulator / Physical device
-- Google Maps API Key (for location features)
-
-### Important Note About System-Specific Configurations
-
-This project contains system-specific configuration files that will need to be adjusted when cloning to a different machine:
-
-1. **local.properties**: Located in the `android/` folder, this file contains paths specific to your development environment:
-   ```properties
-   sdk.dir=C:\\Users\\YourUsername\\AppData\\Local\\Android\\sdk
-   flutter.sdk=Path\\To\\Your\\Flutter\\SDK
-   ```
-   
-   These paths must be updated to match your specific system setup. The file is automatically generated when you first build the project, but you may need to modify it if:
-   - Your Android SDK is installed in a non-standard location
-   - Your Flutter SDK is installed somewhere other than the default location
-
-2. **Asset paths in pubspec.yaml**: Make sure any asset paths use relative paths, not absolute paths that include system-specific directories.
-
-### Development Environment Setup
-
-Based on the Flutter Doctor output, you need to complete the following setup:
-
-1. **Android SDK Setup**:
-   
-   If you encounter the error "Android sdkmanager not found", follow these steps:
-   
-   a. Download the command-line tools from [Android Studio downloads page](https://developer.android.com/studio#command-tools)
-   
-   b. Extract the downloaded zip file
-   
-   c. Create the following directory structure in your Android SDK location (typically found at `%LOCALAPPDATA%\Android\Sdk` or wherever you installed it):
-   ```
-   [Android SDK location]/cmdline-tools/latest/
-   ```
-   
-   d. Move the contents of the extracted zip into this `latest` folder
-   
-   e. Add the following to your PATH environment variable:
-   ```
-   [Android SDK location]/cmdline-tools/latest/bin
-   ```
-   
-   f. Restart your terminal/command prompt and try again:
-   ```bash
-   flutter doctor --android-licenses
-   ```
-
-2. **For Windows App Development** (optional):
-   - Install Visual Studio with "Desktop development with C++" workload from [Visual Studio downloads](https://visualstudio.microsoft.com/downloads/)
-
-3. **Android Studio** (recommended for Android development):
-   - Install from [Android Studio website](https://developer.android.com/studio)
-
-### Installation
-
-1. Clone the repository
-   ```bash
-   https://github.com/code-gi/winal_drug_shop.git
-   cd winal_drug_shop
-   ```
-
-2. Install dependencies
-   ```bash
-   flutter pub get
-   ```
-
-3. Configure API Keys
-   - For Google Maps, create a file `lib/utils/api_keys.dart` with your API key:
-     ```dart
-     const String googleMapsApiKey = 'YOUR_API_KEY';
-     ```
-
-4. Run the application
-   ```bash
-   flutter run
-   ```
+- permission_handler: ^11
 
 ## Running the Project
 
 Once you have completed the setup above:
 
-1. Connect your development device:
-   - Physical Android device (ensure USB debugging is enabled)
-   - Android emulator (can be launched from Android Studio)
-   - iOS simulator (Mac only)
-   - Chrome browser (for web development)
-
-2. Navigate to the project directory:
+1. **Start the Backend Server**:
    ```bash
-   cd D:\projects\winal_drug_shop
+   cd D:\projects\winal_drug_shop\backend
+   
+   # Activate virtual environment
+   venv\Scripts\activate  # Windows
+   # OR
+   source venv/bin/activate  # macOS/Linux
+   
+   # First-time setup (only needed once)
+   pip install -r requirements.txt
+   flask db upgrade
+   python populate_db.py
+   
+   # Run the server
+   flask run --host=0.0.0.0
+   ```
+   The backend will be available at `http://your_ip_address:5000`
+
+2. **Update API Base URL**:
+   Open `lib/utils/medication_service.dart` and update the `baseUrl` to match your computer's IP address:
+   ```dart
+   final String baseUrl = 'http://your_ip_address:5000';
    ```
 
-3. Run the application:
+3. **Run the Flutter Application**:
    ```bash
+   cd D:\projects\winal_drug_shop
    flutter run
    ```
    
@@ -159,105 +120,3 @@ Once you have completed the setup above:
    flutter run -d windows    # For Windows
    flutter run -d [device-id] # For a specific device
    ```
-
-## Building for Production
-
-### Android
-
-```bash
-flutter build apk --release
-```
-or for app bundle:
-```bash
-flutter build appbundle --release
-```
-
-### iOS
-
-```bash
-flutter build ios --release
-```
-Then archive and upload using Xcode.
-
-### Web
-
-```bash
-flutter build web --release
-```
-
-## Project Structure
-
-```
-lib/
-  ├── main.dart             # Entry point
-  ├── screens/              # UI screens
-  │   ├── login_screen.dart
-  │   ├── medications_screen.dart
-  │   ├── animal_medications.dart
-  │   ├── human_medications.dart
-  │   └── ...
-  ├── utils/               # Utilities and constants
-  │   └── constants.dart
-  └── ...
-```
-
-## Troubleshooting
-
-If you encounter any issues with Flutter setup:
-
-1. Ensure your Flutter version matches the project requirements:
-   ```bash
-   flutter --version
-   ```
-   Current project uses Flutter 3.29.2
-
-2. If you see unauthorized device errors:
-   - Check your physical device for an authorization dialog
-   - For Android devices, ensure USB debugging is enabled
-
-3. For complete environment diagnostics:
-   ```bash
-   flutter doctor -v
-   ```
-
-## Troubleshooting Common Issues
-
-If you encounter build errors after cloning this project:
-
-1. **NDK Version Issues**: 
-   This project uses a specific NDK version (25.1.8937393) set in `android/app/build.gradle`. If you encounter NDK-related errors, ensure this version is installed or update it to a version available on your system.
-
-2. **Java Compatibility Issues**:
-   If you're using Java 21 or higher, make sure your Android Gradle Plugin (AGP) version is at least 8.2.1 (set in `android/settings.gradle`).
-
-3. **Path Inconsistencies**:
-   Check `android/local.properties` to ensure the paths match your system configuration:
-   ```
-   sdk.dir=[Path to your Android SDK]
-   flutter.sdk=[Path to your Flutter SDK]
-   ```
-
-4. **Asset Not Found Errors**:
-   If you see "No file or variants found for asset" errors, ensure that:
-   - All referenced assets exist in your project
-   - You're using relative paths in pubspec.yaml (assets/images/) not absolute paths
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-<!-- Specify your license here -->
-
-## Acknowledgements
-
-<!-- Add any acknowledgements here -->
-
-## Contact
-
-<!-- Add contact information here -->
