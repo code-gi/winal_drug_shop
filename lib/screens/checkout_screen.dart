@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'animal_medications.dart';
+import 'dynamic_medications.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cart;
@@ -223,9 +223,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AnimalMedsScreen(
+                      builder: (context) => const DynamicMedicationsScreen(
                         userEmail: '',
                         userInitials: '',
+                        medicationType: 'animal',
+                        screenTitle: 'Animal Medication',
                       ),
                     ),
                     (route) => false,

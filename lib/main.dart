@@ -4,8 +4,8 @@ import 'package:winal_front_end/screens/welcome_screen.dart' hide SplashScreen;
 import 'package:winal_front_end/screens/splash_screen.dart';
 import 'package:winal_front_end/screens/sign_up_screen.dart' hide LoginScreen;
 import 'package:winal_front_end/screens/login_screen.dart' as login;
-import 'package:winal_front_end/screens/human_medications.dart';
-import 'package:winal_front_end/screens/animal_medications.dart';
+// import 'package:winal_front_end/screens/human_medications.dart';
+// import 'package:winal_front_end/screens/animal_medications.dart';
 import 'package:winal_front_end/screens/dynamic_medications.dart';
 import 'package:winal_front_end/screens/medication_detail_screen.dart';
 import 'package:winal_front_end/screens/about_us_screen.dart' as aus;
@@ -21,6 +21,7 @@ import 'package:winal_front_end/screens/profile_screen.dart';
 import 'package:winal_front_end/screens/dashboard_screen.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
+import 'package:winal_front_end/providers/cart_provider.dart';
 import 'package:winal_front_end/screens/admin/admin_dashboard_screen.dart';
 
 void main() {
@@ -107,37 +108,41 @@ class MyApp extends StatelessWidget {
               userInitials: args['userInitials'] ?? '',
             ),
           );
-        } else if (settings.name == '/human_medications') {
-          // Check if args exists and contains required fields
-          final args = settings.arguments as Map<String, dynamic>?;
-          if (args == null || args['userEmail'] == null) {
-            // If argument is missing, redirect to login
-            return MaterialPageRoute(
-              builder: (context) => const login.LoginScreen(),
-            );
-          }
-          return MaterialPageRoute(
-            builder: (context) => HumanMedicationsScreen(
-              userEmail: args['userEmail'],
-              userInitials: args['userInitials'] ?? '',
-            ),
-          );
-        } else if (settings.name == '/animal_medications') {
-          // Check if args exists and contains required fields
-          final args = settings.arguments as Map<String, dynamic>?;
-          if (args == null || args['userEmail'] == null) {
-            // If argument is missing, redirect to login
-            return MaterialPageRoute(
-              builder: (context) => const login.LoginScreen(),
-            );
-          }
-          return MaterialPageRoute(
-            builder: (context) => AnimalMedsScreen(
-              userEmail: args['userEmail'],
-              userInitials: args['userInitials'] ?? '',
-            ),
-          );
-        } else if (settings.name == '/dynamic_medications') {
+        } 
+        
+        // else if (settings.name == '/human_medications') {
+        //   // Check if args exists and contains required fields
+        //   final args = settings.arguments as Map<String, dynamic>?;
+        //   if (args == null || args['userEmail'] == null) {
+        //     // If argument is missing, redirect to login
+        //     return MaterialPageRoute(
+        //       builder: (context) => const login.LoginScreen(),
+        //     );
+        //   }
+        //   return MaterialPageRoute(
+        //     builder: (context) => HumanMedicationsScreen(
+        //       userEmail: args['userEmail'],
+        //       userInitials: args['userInitials'] ?? '',
+        //     ),
+        //   );
+        // } else if (settings.name == '/animal_medications') {
+        //   // Check if args exists and contains required fields
+        //   final args = settings.arguments as Map<String, dynamic>?;
+        //   if (args == null || args['userEmail'] == null) {
+        //     // If argument is missing, redirect to login
+        //     return MaterialPageRoute(
+        //       builder: (context) => const login.LoginScreen(),
+        //     );
+        //   }
+        //   return MaterialPageRoute(
+        //     builder: (context) => AnimalMedsScreen(
+        //       userEmail: args['userEmail'],
+        //       userInitials: args['userInitials'] ?? '',
+        //     ),
+        //   );
+        // }
+        
+         else if (settings.name == '/dynamic_medications') {
           // Check if args exists and contains required fields
           final args = settings.arguments as Map<String, dynamic>?;
           if (args == null ||

@@ -392,7 +392,7 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '\$${medication['price'].toStringAsFixed(2)}',
+                                        'UGX ${medication['price'].toStringAsFixed(0)}',
                                         style: TextStyle(
                                           color: Theme.of(context).primaryColor,
                                           fontWeight: FontWeight.bold,
