@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'animal_medications.dart';
-import 'human_medications.dart';
+import 'dynamic_medications.dart';
 import 'call_screen.dart';
 import 'chat_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
+import 'admin/admin_dashboard_screen.dart';
 
 class MedicationsScreen extends StatefulWidget {
   final String userEmail;
@@ -123,6 +123,22 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 Navigator.pushNamed(context, '/about_us');
               },
             ),
+            // Admin Dashboard option
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('Admin Dashboard'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  '/admin',
+                  arguments: {
+                    'adminName': widget.userEmail.split('@')[0],
+                    'adminEmail': widget.userEmail,
+                  },
+                );
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
@@ -187,9 +203,11 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AnimalMedsScreen(
+                    builder: (context) => DynamicMedicationsScreen(
                       userEmail: widget.userEmail,
                       userInitials: getInitials(widget.userEmail),
+                      medicationType: "animal",
+                      screenTitle: "Animal Medications",
                     ),
                   ),
                 );
@@ -204,9 +222,11 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MedicineApp(
+                    builder: (context) => DynamicMedicationsScreen(
                       userEmail: widget.userEmail,
                       userInitials: getInitials(widget.userEmail),
+                      medicationType: "human",
+                      screenTitle: "Human Medications",
                     ),
                   ),
                 );
