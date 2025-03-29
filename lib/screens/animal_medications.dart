@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-
+import 'checkout_screen.dart';
 import 'welcome_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -47,6 +48,7 @@ class CartItem {
     this.quantity = 1,
   });
 }
+
 class AnimalMedsScreen extends StatefulWidget {
   final String userEmail;
   final String userInitials;
@@ -106,7 +108,8 @@ class _AnimalMedsScreenState extends State<AnimalMedsScreen> {
 
   void addToCart(Product product) {
     setState(() {
-      final existingIndex = cart.indexWhere((item) => item.product.id == product.id);
+      final existingIndex =
+          cart.indexWhere((item) => item.product.id == product.id);
       if (existingIndex >= 0) {
         cart[existingIndex].quantity += 1;
       } else {
@@ -120,7 +123,8 @@ class _AnimalMedsScreenState extends State<AnimalMedsScreen> {
   }
 
   int get totalPrice {
-    return cart.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+    return cart.fold(
+        0, (sum, item) => sum + (item.product.price * item.quantity));
   }
 
   void toggleCart() {
@@ -366,7 +370,6 @@ class CartPopup extends StatelessWidget {
     required this.cart,
     required this.totalPrice,
     required this.onClose,
-
   }) : super(key: key);
 
   @override
@@ -486,14 +489,15 @@ class CartPopup extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => CheckoutScreen(
-                              cart: List.empty(),
+                              cart: cart,
                               totalPrice: totalPrice,
                             ),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 64, 108, 230),
+                        backgroundColor:
+                            const Color.fromARGB(255, 64, 108, 230),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(

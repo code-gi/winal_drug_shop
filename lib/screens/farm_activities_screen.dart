@@ -17,12 +17,12 @@ class MyApp extends StatelessWidget {
 class FarmActivitiesScreen extends StatelessWidget {
   // List of activities with their labels and placeholder image paths
   final List<Map<String, String>> activities = [
-    {'label': 'Farm visits', 'image': 'assets/farm_visits.jpg'},
-    {'label': 'Seminars', 'image': 'assets/seminars.jpg'},
-    {'label': 'Retreats', 'image': 'assets/retreats.jpg'},
-    {'label': 'Mentorship', 'image': 'assets/mentorship.jpg'},
-    {'label': 'Construction', 'image': 'assets/construction.jpg'},
-    {'label': 'Financial services', 'image': 'assets/financial_services.jpg'},
+    {'label': 'Farm visits', 'image': 'assets/images/FARM VISITS.jpeg'},
+    {'label': 'Seminars', 'image': 'assets/images/SEMINARS.jpeg'},
+    {'label': 'Retreats', 'image': 'assets/images/RETREATS.jpeg'},
+    {'label': 'Mentorship', 'image': 'assets/images/MENTORSHIP.jpeg'},
+    {'label': 'Construction', 'image': 'assets/images/CONSTRUCTION.jpeg'},
+    {'label': 'Financial services', 'image': 'assets/images/FINANCIAL.jpeg'},
   ];
 
   @override

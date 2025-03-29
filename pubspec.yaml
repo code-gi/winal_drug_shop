@@ -42,6 +42,9 @@ dependencies:
   google_maps_flutter: ^2.12.0
   geolocator: ^13.0.3
   url_launcher: ^6.2.5
+  flutter_animate: ^4.2.0
+  animations: ^2.0.7
+  glassmorphism: ^3.0.0
 
 dev_dependencies:
   flutter_test:

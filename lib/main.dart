@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/sign_up_screen.dart';
+import 'package:winal_front_end/screens/welcome_screen.dart' hide SplashScreen;
+import 'package:winal_front_end/screens/splash_screen.dart';
+import 'package:winal_front_end/screens/sign_up_screen.dart' hide LoginScreen;
+import 'package:winal_front_end/screens/login_screen.dart' as login;
+import 'package:winal_front_end/screens/medications_screen.dart'
+    hide FarmActivitiesScreen;
+import 'package:winal_front_end/screens/animal_medications.dart';
+import 'package:winal_front_end/screens/human_medications.dart';
+import 'package:winal_front_end/screens/about_us_screen.dart' as aus;
+import 'package:winal_front_end/screens/call_screen.dart';
+import 'package:winal_front_end/screens/chat_screen.dart';
+import 'package:winal_front_end/screens/notifications_screen.dart';
+import 'package:winal_front_end/screens/farm_activities_screen.dart';
+import 'package:winal_front_end/screens/checkout_screen.dart';
+import 'package:winal_front_end/screens/faqs_screen.dart';
+import 'package:winal_front_end/screens/feedback_screen.dart';
+import 'package:winal_front_end/screens/health_tips_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,16 +28,31 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Winal Drug Shop',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const SplashScreen(), // Use 'home' instead of 'initialRoute'
-      routes: {
-        '/splash': (context) => const SplashScreen()
-        // Add other routes here as needed
-      },
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: const SplashScreen(),
+      routes: {
+        '/welcome': (context) => const WelcomeScreen(),
+        '/login': (context) => const login.LoginScreen(),
+        '/signup': (context) => const SignUpScreen(),
+        '/medications': (context) =>
+            const MedicationsScreen(userEmail: '', userInitials: ''),
+        '/about_us': (context) => const aus.AboutUsScreen(),
+        '/call': (context) => const CallScreen(),
+        '/chat': (context) => const ChatScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/farm_activities': (context) => FarmActivitiesScreen(),
+        '/checkout': (context) => CheckoutScreen(
+              cart: const [],
+              totalPrice: 0,
+            ),
+        '/faqs': (context) => const FAQsScreen(),
+        '/feedback': (context) => const FeedbackScreen(),
+        '/health_tips': (context) => const HealthTipsScreen(),
+      },
     );
   }
 }
