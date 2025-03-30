@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dynamic_medications.dart';
+import 'package:winal_front_end/screens/dynamic_medications.dart';
 import 'package:winal_front_end/models/cart_item.dart';
+import 'package:provider/provider.dart';
+import 'package:winal_front_end/providers/cart_provider.dart';
+
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cart;
   final int totalPrice;
@@ -14,7 +17,7 @@ class CheckoutScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _CheckoutScreenState createState() => _CheckoutScreenState();
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
@@ -27,6 +30,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _whereToController = TextEditingController();
   final TextEditingController _whereFromController = TextEditingController();
   final double deliveryFee = 5000;
+  bool _showMap = false; // Control map visibility
 
   // Google Maps variables
   GoogleMapController? _mapController;
@@ -96,23 +100,161 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                initialCameraPosition: const CameraPosition(
-                  target: _winalDrugShop,
-                  zoom: 15,
-                ),
-                markers: _markers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: true,
+            // Order Summary Section
+            const Text(
+              'ORDER SUMMARY',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
               ),
             ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Item count header
+                  Text(
+                    '${widget.cart.length} item${widget.cart.length > 1 ? 's' : ''} in your cart',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const Divider(),
+                  // List of items
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: widget.cart.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final item = widget.cart[index];
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Item image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              item.product.image,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image_not_supported, size: 25),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Item details
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.product.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${item.quantity} x UGX ${item.product.price}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Item subtotal
+                          Text(
+                            'UGX ${item.product.price * item.quantity}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const Divider(),
+                  // Subtotal
+                  _buildOrderSummaryRow('Subtotal', 'UGX ${widget.totalPrice}'),
+                  const SizedBox(height: 4),
+                  // Delivery fee
+                  _buildOrderSummaryRow('Delivery Fee', 'UGX $deliveryFee'),
+                  const Divider(),
+                  // Total
+                  _buildOrderSummaryRow('Total', 'UGX $totalWithDelivery', isTotal: true),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Map section with a toggle to hide/show
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'DELIVERY LOCATION',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: _showMap,
+                  onChanged: (value) {
+                    setState(() {
+                      _showMap = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            // Map (shown conditionally)
+            if (_showMap) ...[
+              const SizedBox(height: 12),
+              Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: GoogleMap(
+                    onMapCreated: _onMapCreated,
+                    initialCameraPosition: const CameraPosition(
+                      target: _winalDrugShop,
+                      zoom: 15,
+                    ),
+                    markers: _markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 20),
             const Text(
               'WHERE TO?',
@@ -172,8 +314,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _selectedPaymentMethod = newValue;
                 });
               },
-              items:
-                  _paymentMethods.map<DropdownMenuItem<String>>((String value) {
+              items: _paymentMethods.map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -188,12 +329,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-            _buildCostRow('Base Amount', 'Shs.${widget.totalPrice}'),
-            const SizedBox(height: 8),
-            _buildCostRow('Delivery Amount', 'Shs.$deliveryFee'),
-            const SizedBox(height: 8),
-            _buildCostRow('TOTAL', 'Shs.$totalWithDelivery', isTotal: true),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
@@ -213,24 +348,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     );
                     return;
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Order placed successfully using $_selectedPaymentMethod!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const DynamicMedicationsScreen(
-                        userEmail: '',
-                        userInitials: '',
-                        medicationType: 'animal',
-                        screenTitle: 'Animal Medication',
-                      ),
-                    ),
-                    (route) => false,
+                  
+                  // Get cart provider to clear cart after successful order
+                  final cartProvider = Provider.of<CartProvider>(context, listen: false);
+                  
+                  // Show order success dialog
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green, size: 28),
+                            SizedBox(width: 8),
+                            Text('Order Successful!'),
+                          ],
+                        ),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Your order has been placed successfully.',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Payment Method: $_selectedPaymentMethod',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Delivery Address: ${_whereToController.text}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Amount: UGX $totalWithDelivery',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              // Clear the cart after successful order
+                              cartProvider.clearCart();
+                              
+                              Navigator.of(context).pop();
+                              // Return to main screen after order
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const DynamicMedicationsScreen(
+                                    userEmail: '',
+                                    userInitials: '',
+                                    medicationType: 'human',
+                                    screenTitle: 'Human Medications',
+                                  ),
+                                ),
+                                (route) => false,
+                              );
+                            },
+                            child: const Text('Continue Shopping'),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -241,7 +428,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Pay to order',
+                  'Place Order',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -256,21 +443,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildCostRow(String label, String amount, {bool isTotal = false}) {
+  Widget _buildOrderSummaryRow(String label, String value, {bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            color: isTotal ? Colors.black : Colors.grey[700],
           ),
         ),
         Text(
-          amount,
+          value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
           ),
         ),

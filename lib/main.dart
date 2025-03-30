@@ -23,6 +23,7 @@ import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
 import 'package:winal_front_end/screens/admin/admin_dashboard_screen.dart';
+import 'package:winal_front_end/screens/cart_screen.dart';
 
 void main() {
   runApp(
@@ -59,10 +60,7 @@ class MyApp extends StatelessWidget {
         '/chat': (context) => const ChatScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/farm_activities': (context) => FarmActivitiesScreen(),
-        '/checkout': (context) => CheckoutScreen(
-              cart: const [],
-              totalPrice: 0,
-            ),
+        '/cart': (context) => const CartScreen(),
         '/faqs': (context) => const FAQsScreen(),
         '/feedback': (context) => const FeedbackScreen(),
         '/health_tips': (context) => const HealthTipsScreen(),
@@ -75,6 +73,15 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (context) => MedicationDetailScreen(
               medicationId: args['medicationId'],
+            ),
+          );
+        } else if (settings.name == '/checkout') {
+          // Get cart data from arguments
+          final args = settings.arguments as Map<String, dynamic>?;
+          return MaterialPageRoute(
+            builder: (context) => CheckoutScreen(
+              cart: args?['cart'] ?? [],
+              totalPrice: args?['totalPrice'] ?? 0,
             ),
           );
         } else if (settings.name == '/admin') {
@@ -109,41 +116,7 @@ class MyApp extends StatelessWidget {
               userInitials: args['userInitials'] ?? '',
             ),
           );
-        }
-
-        // else if (settings.name == '/human_medications') {
-        //   // Check if args exists and contains required fields
-        //   final args = settings.arguments as Map<String, dynamic>?;
-        //   if (args == null || args['userEmail'] == null) {
-        //     // If argument is missing, redirect to login
-        //     return MaterialPageRoute(
-        //       builder: (context) => const login.LoginScreen(),
-        //     );
-        //   }
-        //   return MaterialPageRoute(
-        //     builder: (context) => HumanMedicationsScreen(
-        //       userEmail: args['userEmail'],
-        //       userInitials: args['userInitials'] ?? '',
-        //     ),
-        //   );
-        // } else if (settings.name == '/animal_medications') {
-        //   // Check if args exists and contains required fields
-        //   final args = settings.arguments as Map<String, dynamic>?;
-        //   if (args == null || args['userEmail'] == null) {
-        //     // If argument is missing, redirect to login
-        //     return MaterialPageRoute(
-        //       builder: (context) => const login.LoginScreen(),
-        //     );
-        //   }
-        //   return MaterialPageRoute(
-        //     builder: (context) => AnimalMedsScreen(
-        //       userEmail: args['userEmail'],
-        //       userInitials: args['userInitials'] ?? '',
-        //     ),
-        //   );
-        // }
-
-        else if (settings.name == '/dynamic_medications') {
+        } else if (settings.name == '/dynamic_medications') {
           // Check if args exists and contains required fields
           final args = settings.arguments as Map<String, dynamic>?;
           if (args == null ||
