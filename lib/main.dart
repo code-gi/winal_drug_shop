@@ -30,6 +30,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: const MyApp(),
     ),
@@ -108,8 +109,8 @@ class MyApp extends StatelessWidget {
               userInitials: args['userInitials'] ?? '',
             ),
           );
-        } 
-        
+        }
+
         // else if (settings.name == '/human_medications') {
         //   // Check if args exists and contains required fields
         //   final args = settings.arguments as Map<String, dynamic>?;
@@ -141,8 +142,8 @@ class MyApp extends StatelessWidget {
         //     ),
         //   );
         // }
-        
-         else if (settings.name == '/dynamic_medications') {
+
+        else if (settings.name == '/dynamic_medications') {
           // Check if args exists and contains required fields
           final args = settings.arguments as Map<String, dynamic>?;
           if (args == null ||

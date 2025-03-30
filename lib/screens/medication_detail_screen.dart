@@ -132,10 +132,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         if (images.isEmpty) {
           // If no images, add a placeholder
           images = [
-            {
-              'url': '/static/images/default_medication.jpg',
-              'is_primary': true
-            }
+            {'url': '/static/images/default_medication.jpg', 'is_primary': true}
           ];
         }
 
@@ -160,7 +157,9 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                       },
                     ),
                     items: images.map((image) {
-                      String imageUrl = image['url'] ?? image['image_url'] ?? '/static/images/default_medication.jpg';
+                      String imageUrl = image['url'] ??
+                          image['image_url'] ??
+                          '/static/images/default_medication.jpg';
 
                       // Handle asset images
                       if (imageUrl.startsWith('assets/')) {
@@ -174,7 +173,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                                 return Container(
                                   color: Colors.grey[300],
                                   child: const Center(
-                                    child: Icon(Icons.image_not_supported, size: 64),
+                                    child: Icon(Icons.image_not_supported,
+                                        size: 64),
                                   ),
                                 );
                               },
@@ -198,8 +198,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                               return Container(
                                 color: Colors.grey[300],
                                 child: const Center(
-                                  child: Icon(Icons.image_not_supported,
-                                      size: 64),
+                                  child:
+                                      Icon(Icons.image_not_supported, size: 64),
                                 ),
                               );
                             },
@@ -219,8 +219,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                           return Container(
                             width: 8.0,
                             height: 8.0,
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 4.0),
+                            margin: const EdgeInsets.symmetric(horizontal: 4.0),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: _currentImageIndex == entry.key
@@ -370,9 +369,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
 
                     // Dosage instructions
                     if (medication['dosage_instructions'] != null &&
-                        medication['dosage_instructions']
-                            .toString()
-                            .isNotEmpty)
+                        medication['dosage_instructions'].toString().isNotEmpty)
                       _buildInfoSection(
                         title: 'Dosage Instructions',
                         content: medication['dosage_instructions'],
@@ -434,11 +431,12 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                         // Convert medication to Product and add to cart
                         final product = _convertMedicationToProduct(medication);
                         cartProvider.addToCart(product);
-                        
+
                         // Show confirmation message
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${medication['name']} added to cart'),
+                            content:
+                                Text('${medication['name']} added to cart'),
                             duration: const Duration(seconds: 2),
                             behavior: SnackBarBehavior.floating,
                             width: 280,
@@ -508,7 +506,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
   Product _convertMedicationToProduct(Map<String, dynamic> medication) {
     // Find the image URL - first try to use the primary image
     String imageUrl = 'assets/images/SYRUP.jpeg'; // Default fallback
-    
+
     if (medication['images'] != null && medication['images'].isNotEmpty) {
       // First try to find the primary image
       for (var image in medication['images']) {
@@ -517,15 +515,16 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
           break;
         }
       }
-      
+
       // If no primary image found, use the first image
-      if (imageUrl == 'assets/images/SYRUP.jpeg' && medication['images'].isNotEmpty) {
-        imageUrl = medication['images'][0]['url'] ?? 
-                  medication['images'][0]['image_url'] ?? 
-                  imageUrl;
+      if (imageUrl == 'assets/images/SYRUP.jpeg' &&
+          medication['images'].isNotEmpty) {
+        imageUrl = medication['images'][0]['url'] ??
+            medication['images'][0]['image_url'] ??
+            imageUrl;
       }
     }
-    
+
     return Product(
       id: medication['id'] ?? 0,
       name: medication['name'] ?? 'Unknown',
@@ -597,8 +596,9 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
               child: const Text('Close'),
             )
           else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 8,
               children: [
                 TextButton(
                   onPressed: () {
@@ -607,32 +607,28 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   },
                   child: const Text('Clear Cart'),
                 ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Continue Shopping'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Checkout successful! Your order is being processed.'),
-                            duration: Duration(seconds: 2),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                        cartProvider.clearCart();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Continue'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Checkout successful! Your order is being processed.'),
+                        duration: Duration(seconds: 2),
+                        backgroundColor: Colors.green,
                       ),
-                      child: const Text('Checkout'),
-                    ),
-                  ],
+                    );
+                    cartProvider.clearCart();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Checkout'),
                 ),
               ],
             ),

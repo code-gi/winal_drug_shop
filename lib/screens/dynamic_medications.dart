@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
+import 'package:winal_front_end/providers/cart_provider.dart';
+import 'package:winal_front_end/models/product.dart';
 import 'dart:developer' as developer;
 
 class DynamicMedicationsScreen extends StatefulWidget {
@@ -70,6 +72,46 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
       appBar: AppBar(
         title: Text(widget.screenTitle),
         actions: [
+          Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              return Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () {
+                      _showCartDialog(context, cartProvider);
+                    },
+                  ),
+                  if (cartProvider.totalItems > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          cartProvider.totalItems.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -436,6 +478,108 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showCartDialog(BuildContext context, CartProvider cartProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Shopping Cart'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: cartProvider.cart.isEmpty
+              ? const Text('Your cart is empty')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 200, // Fixed height for the list
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: cartProvider.cart.length,
+                        itemBuilder: (context, index) {
+                          final item = cartProvider.cart[index];
+                          return ListTile(
+                            title: Text(item.product.name),
+                            subtitle: Text('UGX ${item.product.price}'),
+                            trailing: Text('x${item.quantity}'),
+                          );
+                        },
+                      ),
+                    ),
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
+                            'UGX ${cartProvider.totalPrice}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        actions: [
+          if (cartProvider.cart.isEmpty)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            )
+          else
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 8,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    cartProvider.clearCart();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Clear Cart'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Continue'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Checkout successful! Your order is being processed.'),
+                        duration: Duration(seconds: 2),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    cartProvider.clearCart();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Checkout'),
+                ),
+              ],
+            ),
         ],
       ),
     );
