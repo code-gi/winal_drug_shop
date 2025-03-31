@@ -47,12 +47,14 @@ def create_app(config_name='default'):
     from .routes.medications import medications_bp
     from .routes.categories import categories_bp
     from .routes.seed import seed_bp
+    from .routes.orders import orders_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(medications_bp, url_prefix='/api/medications')
     app.register_blueprint(categories_bp, url_prefix='/api/categories')
     app.register_blueprint(seed_bp, url_prefix='/api/seed')
+    app.register_blueprint(orders_bp, url_prefix='/api/orders')
     
     # Create token blocklist table if it doesn't exist
     from .models.user import TokenBlocklist

@@ -338,7 +338,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_whereToController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -362,19 +362,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   final authProvider =
                       Provider.of<AuthProvider>(context, listen: false);
 
-                  // Create a new order
+                  // Refresh authentication status to ensure it's current
                   if (authProvider.isAuthenticated) {
-                    final userEmail = authProvider.userData?['email'];
+                    try {
+                      // Create a new order
+                      final order = await orderProvider.createOrder(
+                        items: widget.cart,
+                        totalAmount: totalWithDelivery.toInt(),
+                        paymentMethod: _selectedPaymentMethod!,
+                        deliveryAddress: _whereToController.text,
+                      );
 
-                    // Save order to order provider
-                    orderProvider
-                        .createOrder(
-                      items: widget.cart,
-                      totalAmount: totalWithDelivery.toInt(),
-                      paymentMethod: _selectedPaymentMethod!,
-                      deliveryAddress: _whereToController.text,
-                    )
-                        .then((order) {
+                      // Only clear the cart after successful order creation
+                      cartProvider.clearCart();
+
                       // Show order success dialog
                       showDialog(
                         context: context,
@@ -432,9 +433,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  // Clear the cart after successful order
-                                  cartProvider.clearCart();
-
                                   Navigator.of(context).pop();
                                   // Return to main screen after order
                                   final userEmail =
@@ -465,20 +463,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           );
                         },
                       );
-                    }).catchError((error) {
+                    } catch (error) {
+                      // Show error message if order creation fails
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error placing order: $error')),
+                        SnackBar(
+                          content: Text('Error placing order: $error'),
+                          duration: const Duration(seconds: 5),
+                        ),
                       );
-                    });
-
-                    // Clear the cart after successful order
-                    cartProvider.clearCart();
+                    }
                   } else {
                     // Handle not authenticated case
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text('Please log in to place an order')),
+                        content: Text('Please log in to place an order'),
+                        duration: Duration(seconds: 3),
+                      ),
                     );
+                    // Navigate to login screen
                     Navigator.of(context).pushNamed('/login');
                   }
                 },
