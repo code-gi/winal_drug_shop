@@ -1,4 +1,5 @@
 import 'package:winal_front_end/models/cart_item.dart';
+import 'package:winal_front_end/models/product.dart';
 
 class Order {
   final String id;
@@ -34,6 +35,7 @@ class Order {
                   'description': item.product.description,
                   'price': item.product.price,
                   'image': item.product.image,
+                  'type': item.product.type,
                 },
                 'quantity': item.quantity,
               })
@@ -58,6 +60,7 @@ class Order {
           description: item['product']['description'] ?? '',
           price: item['product']['price'],
           image: item['product']['image'],
+          type: item['product']['type'] ?? '',
         );
 
         return CartItem(

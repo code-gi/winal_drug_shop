@@ -47,6 +47,7 @@ class CartProvider extends ChangeNotifier {
             description: item['product']['description'] ?? '',
             price: item['product']['price'],
             image: item['product']['image'],
+            type: item['product']['type'] ?? '',
           );
 
           return CartItem(
@@ -76,6 +77,7 @@ class CartProvider extends ChangeNotifier {
             'description': item.product.description,
             'price': item.product.price,
             'image': item.product.image,
+            'type': item.product.type,
           },
           'quantity': item.quantity,
         };

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class Product {
   final int id;
   final String name;
+  final String description;
   final int price;
   final String image;
   final Color color;
@@ -13,7 +14,8 @@ class Product {
     required this.name,
     required this.price,
     required this.image,
-    required this.color,
-    required this.type,
+    this.description = '',
+    this.color = Colors.white,
+    this.type = '',
   });
 }
