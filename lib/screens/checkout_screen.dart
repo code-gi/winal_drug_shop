@@ -5,6 +5,8 @@ import 'package:winal_front_end/screens/dynamic_medications.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
+import 'package:winal_front_end/providers/order_provider.dart';
+import 'package:winal_front_end/utils/auth_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cart;
@@ -153,7 +155,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   width: 50,
                                   height: 50,
                                   color: Colors.grey[300],
-                                  child: const Icon(Icons.image_not_supported, size: 25),
+                                  child: const Icon(Icons.image_not_supported,
+                                      size: 25),
                                 );
                               },
                             ),
@@ -200,7 +203,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _buildOrderSummaryRow('Delivery Fee', 'UGX $deliveryFee'),
                   const Divider(),
                   // Total
-                  _buildOrderSummaryRow('Total', 'UGX $totalWithDelivery', isTotal: true),
+                  _buildOrderSummaryRow('Total', 'UGX $totalWithDelivery',
+                      isTotal: true),
                 ],
               ),
             ),
@@ -314,7 +318,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _selectedPaymentMethod = newValue;
                 });
               },
-              items: _paymentMethods.map<DropdownMenuItem<String>>((String value) {
+              items:
+                  _paymentMethods.map<DropdownMenuItem<String>>((String value) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -348,77 +353,134 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     );
                     return;
                   }
-                  
-                  // Get cart provider to clear cart after successful order
-                  final cartProvider = Provider.of<CartProvider>(context, listen: false);
-                  
-                  // Show order success dialog
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Row(
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.green, size: 28),
-                            SizedBox(width: 8),
-                            Text('Order Successful!'),
-                          ],
-                        ),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Your order has been placed successfully.',
-                              style: TextStyle(fontSize: 16),
+
+                  // Get providers
+                  final cartProvider =
+                      Provider.of<CartProvider>(context, listen: false);
+                  final orderProvider =
+                      Provider.of<OrderProvider>(context, listen: false);
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+
+                  // Create a new order
+                  if (authProvider.isAuthenticated) {
+                    final userEmail = authProvider.userData?['email'];
+
+                    // Save order to order provider
+                    orderProvider
+                        .createOrder(
+                      items: widget.cart,
+                      totalAmount: totalWithDelivery.toInt(),
+                      paymentMethod: _selectedPaymentMethod!,
+                      deliveryAddress: _whereToController.text,
+                    )
+                        .then((order) {
+                      // Show order success dialog
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    color: Colors.green, size: 28),
+                                SizedBox(width: 8),
+                                Text('Order Successful!'),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Payment Method: $_selectedPaymentMethod',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Delivery Address: ${_whereToController.text}',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Total Amount: UGX $totalWithDelivery',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              // Clear the cart after successful order
-                              cartProvider.clearCart();
-                              
-                              Navigator.of(context).pop();
-                              // Return to main screen after order
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const DynamicMedicationsScreen(
-                                    userEmail: '',
-                                    userInitials: '',
-                                    medicationType: 'human',
-                                    screenTitle: 'Human Medications',
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Your order has been placed successfully.',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Order #: ${order.id.substring(0, 8)}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Payment Method: $_selectedPaymentMethod',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Delivery Address: ${_whereToController.text}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Total Amount: UGX $totalWithDelivery',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                (route) => false,
-                              );
-                            },
-                            child: const Text('Continue Shopping'),
-                          ),
-                        ],
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  // Navigate to Orders page
+                                  Navigator.pushNamed(context, '/orders');
+                                },
+                                child: const Text('View Orders'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  // Clear the cart after successful order
+                                  cartProvider.clearCart();
+
+                                  Navigator.of(context).pop();
+                                  // Return to main screen after order
+                                  final userEmail =
+                                      authProvider.userData?['email'] ?? '';
+                                  final firstName =
+                                      authProvider.userData?['first_name'] ??
+                                          '';
+                                  final lastName =
+                                      authProvider.userData?['last_name'] ?? '';
+                                  final initials = firstName.isNotEmpty &&
+                                          lastName.isNotEmpty
+                                      ? '${firstName[0]}${lastName[0]}'
+                                      : '';
+
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    '/dashboard',
+                                    (route) => false,
+                                    arguments: {
+                                      'userEmail': userEmail,
+                                      'userInitials': initials,
+                                    },
+                                  );
+                                },
+                                child: const Text('Continue Shopping'),
+                              ),
+                            ],
+                          );
+                        },
                       );
-                    },
-                  );
+                    }).catchError((error) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error placing order: $error')),
+                      );
+                    });
+
+                    // Clear the cart after successful order
+                    cartProvider.clearCart();
+                  } else {
+                    // Handle not authenticated case
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Please log in to place an order')),
+                    );
+                    Navigator.of(context).pushNamed('/login');
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -443,7 +505,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildOrderSummaryRow(String label, String value, {bool isTotal = false}) {
+  Widget _buildOrderSummaryRow(String label, String value,
+      {bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

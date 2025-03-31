@@ -5,6 +5,8 @@ import 'chat_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import 'admin/admin_dashboard_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:winal_front_end/providers/cart_provider.dart';
 
 class MedicationsScreen extends StatefulWidget {
   final String userEmail;
@@ -80,6 +82,43 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
               title: const Text('Home'),
               onTap: () {
                 Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_cart),
+              title: const Text('My Cart'),
+              trailing: Consumer<CartProvider>(
+                builder: (context, cartProvider, child) {
+                  return cartProvider.totalItems > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${cartProvider.totalItems}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/cart');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('My Orders'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/orders');
               },
             ),
             ListTile(

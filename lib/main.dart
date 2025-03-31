@@ -22,8 +22,10 @@ import 'package:winal_front_end/screens/dashboard_screen.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
+import 'package:winal_front_end/providers/order_provider.dart';
 import 'package:winal_front_end/screens/admin/admin_dashboard_screen.dart';
 import 'package:winal_front_end/screens/cart_screen.dart';
+import 'package:winal_front_end/screens/orders_screen.dart';
 
 void main() {
   runApp(
@@ -32,6 +34,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
       ],
       child: const MyApp(),
     ),
@@ -43,6 +46,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Setup listener for auth changes to update cart and order providers
+    final authProvider = Provider.of<AuthProvider>(context);
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+
+    // Update current user in cart and order providers when auth state changes
+    if (authProvider.isAuthenticated && authProvider.userData != null) {
+      cartProvider.setCurrentUser(authProvider.userData?['email']);
+      orderProvider.setCurrentUser(authProvider.userData?['email']);
+    } else {
+      cartProvider.setCurrentUser(null);
+      orderProvider.setCurrentUser(null);
+    }
+
     return MaterialApp(
       title: 'Winal Drug Shop',
       debugShowCheckedModeBanner: false,
@@ -61,6 +78,7 @@ class MyApp extends StatelessWidget {
         '/notifications': (context) => const NotificationsScreen(),
         '/farm_activities': (context) => FarmActivitiesScreen(),
         '/cart': (context) => const CartScreen(),
+        '/orders': (context) => const OrdersScreen(),
         '/faqs': (context) => const FAQsScreen(),
         '/feedback': (context) => const FeedbackScreen(),
         '/health_tips': (context) => const HealthTipsScreen(),
