@@ -27,7 +27,7 @@ def get_orders():
     orders = []
     for order in user_orders:
         orders.append(order.to_dict())
-    
+    print(orders)
     return jsonify({'orders': orders}), 200
 
 @orders_bp.route('/<int:order_id>', methods=['GET'])
@@ -54,26 +54,33 @@ def create_order():
     """Create a new order"""
     # Get the user ID from the JWT token
     user_id = get_jwt_identity()
+    print(f"⭐ Backend: Received order creation request from user ID: {user_id}")
     
     # Find the user in the database
     user = User.query.get(user_id)
     if not user:
+        print(f"❌ Backend: User not found for ID: {user_id}")
         return jsonify({'message': 'User not found'}), 404
     
     # Get data from request
     data = request.get_json()
+    print(f"📦 Backend: Order data received: {data}")
     
     # Validate required fields
     if not data or 'items' not in data or not data['items']:
+        print("❌ Backend: Missing items in order data")
         return jsonify({'message': 'Order must contain at least one item'}), 400
     
     if 'total_amount' not in data:
+        print("❌ Backend: Missing total_amount in order data")
         return jsonify({'message': 'Total amount is required'}), 400
     
     if 'payment_method' not in data:
+        print("❌ Backend: Missing payment_method in order data")
         return jsonify({'message': 'Payment method is required'}), 400
     
     if 'delivery_address' not in data:
+        print("❌ Backend: Missing delivery_address in order data")
         return jsonify({'message': 'Delivery address is required'}), 400
     
     try:
@@ -94,9 +101,11 @@ def create_order():
             product_type = item_data.get('type', 'medication')  # Default type
             name = item_data.get('name', f'Product {product_id}')  # Default name
             
+            print(f"📦 Backend: Creating order item: {name}, type: {product_type}, id: {product_id}")
+            
             order_item = OrderItem(
-                product_id=product_id,
-                product_type=product_type,
+                item_id=product_id,  # Changed from product_id to item_id
+                item_type=product_type,  # Changed from product_type to item_type
                 name=name,
                 price=item_data['price'],
                 quantity=item_data['quantity']
@@ -107,6 +116,9 @@ def create_order():
         db.session.add(order)
         db.session.commit()
         
+        print(f"✅ Backend: Order created successfully with ID: {order.id}")
+        print(f"✅ Backend: Order details: {order.to_dict()}")
+        
         return jsonify({
             'message': 'Order created successfully',
             'order': order.to_dict()
@@ -114,6 +126,7 @@ def create_order():
         
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Backend: Error creating order: {str(e)}")
         return jsonify({'message': f'Error creating order: {str(e)}'}), 500
 
 @orders_bp.route('/<int:order_id>/cancel', methods=['POST'])

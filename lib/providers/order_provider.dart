@@ -78,23 +78,57 @@ class OrderProvider extends ChangeNotifier {
 
       if (result['success']) {
         // If backend call successful, replace local orders with backend data
-        if (result['data']['orders'] != null) {
-          final List<dynamic> ordersData = result['data']['orders'];
+        if (result['data'] != null) {
+          List<dynamic> ordersData = [];
+
+          // Handle both possible response structures
+          if (result['data'] is List) {
+            ordersData = result['data'];
+            developer.log('Backend returned orders as direct list');
+          } else if (result['data'] is Map &&
+              result['data']['orders'] != null) {
+            ordersData = result['data']['orders'];
+            developer.log('Backend returned orders inside data.orders');
+          } else {
+            developer.log(
+                'Unexpected data structure: ${result['data'].runtimeType}');
+            // Try to extract orders from the data structure
+            if (result['data'] is Map) {
+              final keys = (result['data'] as Map).keys.toList();
+              developer.log('Available keys in data: $keys');
+
+              // Look for any key that might contain orders
+              for (final key in keys) {
+                if ((result['data'][key] is List) &&
+                    (result['data'][key] as List).isNotEmpty &&
+                    (result['data'][key][0] is Map)) {
+                  ordersData = result['data'][key];
+                  developer.log('Found orders in key: $key');
+                  break;
+                }
+              }
+            }
+          }
+
           developer.log('Received ${ordersData.length} orders from backend');
 
-          // Clear existing orders and replace with backend data
-          _orders = ordersData.map((item) {
-            // Log the structure of an item to debug
-            developer.log('Order item structure: ${item.keys.join(', ')}');
-            return Order.fromMap(item);
-          }).toList();
+          if (ordersData.isNotEmpty) {
+            // For debugging, log the structure of the first order
+            developer.log('First order structure: ${ordersData[0]}');
 
-          // Save to local storage
-          await saveOrdersToLocal();
-          notifyListeners();
+            // Clear existing orders and replace with backend data
+            _orders = ordersData.map((item) {
+              return Order.fromMap(item);
+            }).toList();
+
+            // Save to local storage
+            await saveOrdersToLocal();
+            notifyListeners();
+          } else {
+            developer.log('No orders found in the response');
+          }
         } else {
-          developer.log(
-              'No orders key in response: ${result['data'].keys.join(', ')}');
+          developer.log('No data key in response');
         }
       } else {
         developer
@@ -136,8 +170,15 @@ class OrderProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    print('🔵 OrderProvider: Creating order for user: $_currentUserEmail');
+    print('🔵 OrderProvider: Order items count: ${items.length}');
+    print('🔵 OrderProvider: Total amount: $totalAmount');
+    print('🔵 OrderProvider: Payment method: $paymentMethod');
+    print('🔵 OrderProvider: Delivery address: $deliveryAddress');
+
     try {
       // Try to create order in backend first
+      print('🔵 OrderProvider: Sending order to backend...');
       final result = await _orderService.createOrder(
         items: items,
         totalAmount: totalAmount,
@@ -145,11 +186,19 @@ class OrderProvider extends ChangeNotifier {
         deliveryAddress: deliveryAddress,
       );
 
+      print('🔵 OrderProvider: Order creation result: ${result['success']}');
+
       if (result['success']) {
         // If backend call successful, create order with returned data
         final orderData = result['data']['order'];
+        print(
+            '🔵 OrderProvider: Backend order data received: ${json.encode(orderData)}');
+
+        final String orderId = orderData['id']?.toString() ?? uuid.v4();
+        print('🔵 OrderProvider: Using order ID: $orderId');
+
         final newOrder = Order(
-          id: orderData['id'] ?? uuid.v4(), // Use backend ID if available
+          id: orderId,
           userEmail: _currentUserEmail!,
           items: items,
           totalAmount: totalAmount,
@@ -158,8 +207,10 @@ class OrderProvider extends ChangeNotifier {
           orderDate: DateTime.parse(
               orderData['order_date'] ?? DateTime.now().toIso8601String()),
           status: orderData['status'] ?? 'pending',
+          deliveryFee: 5000, // Explicitly include the delivery fee
         );
 
+        print('🔵 OrderProvider: Created order object with ID: ${newOrder.id}');
         _orders.add(newOrder);
         await saveOrdersToLocal();
 
@@ -168,10 +219,20 @@ class OrderProvider extends ChangeNotifier {
 
         return newOrder;
       } else {
-        // If backend call fails, create local order as fallback
-        developer.log(
-            'Backend order creation failed, creating locally: ${result['message']}');
+        // Enhanced error logging
+        print(
+            '❌ OrderProvider: Backend order creation failed: ${result['message']}');
 
+        if (result.containsKey('status_code')) {
+          print('❌ OrderProvider: Status code: ${result['status_code']}');
+        }
+
+        if (result.containsKey('response_body')) {
+          print('❌ OrderProvider: Response body: ${result['response_body']}');
+        }
+
+        // Create local order as fallback
+        print('🔶 OrderProvider: Falling back to local order creation');
         final newOrder = _createLocalOrder(
             items, totalAmount, paymentMethod, deliveryAddress);
 
@@ -181,9 +242,11 @@ class OrderProvider extends ChangeNotifier {
         return newOrder;
       }
     } catch (e) {
-      developer.log('Error in createOrder', error: e);
+      print('❌ OrderProvider: Error in createOrder: ${e.toString()}');
 
       // Fallback to local creation if there's an exception
+      print(
+          '🔶 OrderProvider: Exception occurred, falling back to local order creation');
       final newOrder =
           _createLocalOrder(items, totalAmount, paymentMethod, deliveryAddress);
 
@@ -202,6 +265,7 @@ class OrderProvider extends ChangeNotifier {
     String paymentMethod,
     String deliveryAddress,
   ) {
+    print('🟠 OrderProvider: Creating local order fallback');
     final newOrder = Order(
       id: uuid.v4(),
       userEmail: _currentUserEmail!,
@@ -211,8 +275,10 @@ class OrderProvider extends ChangeNotifier {
       deliveryAddress: deliveryAddress,
       orderDate: DateTime.now(),
       status: 'pending',
+      deliveryFee: 5000, // Include delivery fee for local orders too
     );
 
+    print('🟠 OrderProvider: Created local order with ID: ${newOrder.id}');
     _orders.add(newOrder);
     saveOrdersToLocal();
 
@@ -221,10 +287,42 @@ class OrderProvider extends ChangeNotifier {
 
   // Get orders for the current user
   List<Order> getUserOrders() {
-    if (_currentUserEmail == null) return [];
-    return _orders
-        .where((order) => order.userEmail == _currentUserEmail)
-        .toList();
+    if (_currentUserEmail == null) {
+      print('getUserOrders: currentUserEmail is null, returning empty list');
+      return [];
+    }
+
+    print(
+        'getUserOrders: Filtering ${_orders.length} orders for user: $_currentUserEmail');
+
+    // Log each order's userEmail for debugging
+    for (var i = 0; i < _orders.length; i++) {
+      print('Order $i: id=${_orders[i].id}, userEmail=${_orders[i].userEmail}');
+    }
+
+    final userOrders = _orders.where((order) {
+      // Check if the order belongs to current user by comparing emails
+      bool isMatch =
+          order.userEmail.toLowerCase() == _currentUserEmail!.toLowerCase();
+
+      // If userEmail is a numeric string (meaning it's from the backend and is a user_id),
+      // we should compare it differently
+      if (!isMatch && order.userEmail.contains(RegExp(r'^[0-9]+$'))) {
+        // This is likely a user_id from the backend
+        print(
+            'Order ${order.id} has numeric userEmail (user_id): ${order.userEmail}');
+
+        // Here we could add additional checks if needed
+        // For simplicity, we could just trust that all orders returned from the backend
+        // belong to the current user, but this might not be appropriate in all cases
+        isMatch = true;
+      }
+
+      return isMatch;
+    }).toList();
+
+    print('getUserOrders: Found ${userOrders.length} orders for current user');
+    return userOrders;
   }
 
   // Update order status - now attempts to update in backend first

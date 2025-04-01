@@ -41,25 +41,39 @@ void main() {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Setup listener for auth changes to update cart and order providers
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get providers
     final authProvider = Provider.of<AuthProvider>(context);
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
 
     // Update current user in cart and order providers when auth state changes
     if (authProvider.isAuthenticated && authProvider.userData != null) {
-      cartProvider.setCurrentUser(authProvider.userData?['email']);
-      orderProvider.setCurrentUser(authProvider.userData?['email']);
+      // Use Future.microtask to schedule these calls after the build is complete
+      Future.microtask(() {
+        cartProvider.setCurrentUser(authProvider.userData?['email']);
+        orderProvider.setCurrentUser(authProvider.userData?['email']);
+      });
     } else {
-      cartProvider.setCurrentUser(null);
-      orderProvider.setCurrentUser(null);
+      Future.microtask(() {
+        cartProvider.setCurrentUser(null);
+        orderProvider.setCurrentUser(null);
+      });
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Winal Drug Shop',
       debugShowCheckedModeBanner: false,

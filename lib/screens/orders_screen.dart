@@ -21,8 +21,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     // Force reload orders when the screen is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+      developer.log('Loading orders from OrdersScreen');
+
       orderProvider.loadOrders();
-      developer.log('Reloading orders from OrdersScreen');
     });
   }
 
@@ -40,6 +41,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             onPressed: () {
               final orderProvider =
                   Provider.of<OrderProvider>(context, listen: false);
+              developer.log('Manually refreshing orders');
               orderProvider.loadOrders();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Refreshing orders...')),
@@ -52,6 +54,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         builder: (context, orderProvider, child) {
           // Show loading indicator if orders are being loaded
           if (orderProvider.isLoading) {
+            developer.log('Orders are loading...');
             return const Center(
               child: CircularProgressIndicator(),
             );
@@ -59,6 +62,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
           // Show error message if there is one
           if (orderProvider.errorMessage != null) {
+            developer.log('Order error: ${orderProvider.errorMessage}');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -98,6 +102,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
           final userOrders = orderProvider.getUserOrders();
           developer.log('User orders count: ${userOrders.length}');
+
+          // Debug the order data
+          if (userOrders.isNotEmpty) {
+            developer.log(
+                'First order: id=${userOrders[0].id}, items=${userOrders[0].items.length}, total=${userOrders[0].totalAmount}');
+          } else {
+            developer.log('User orders list is empty');
+            // Debug the raw orders list
+            developer.log('Raw orders count: ${orderProvider.orders.length}');
+            if (orderProvider.orders.isNotEmpty) {
+              developer.log(
+                  'First raw order: id=${orderProvider.orders[0].id}, items=${orderProvider.orders[0].items.length}');
+            }
+          }
 
           // Show empty state if no orders
           if (userOrders.isEmpty) {
@@ -202,6 +220,48 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           const SizedBox(height: 8),
           ...order.items.map((item) => _buildOrderItemRow(item)).toList(),
+          const SizedBox(height: 16),
+          // Order Summary
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Subtotal'),
+                    Text('UGX ${order.subtotal}'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Delivery Fee'),
+                    Text('UGX ${order.deliveryFee}'),
+                  ],
+                ),
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'UGX ${order.totalAmount}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

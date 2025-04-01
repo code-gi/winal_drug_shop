@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
 import 'package:winal_front_end/providers/order_provider.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
+import 'dart:async'; // Add this import for Timer
+import 'dart:developer' as developer;
 
 class CheckoutScreen extends StatefulWidget {
   final List<CartItem> cart;
@@ -362,9 +364,57 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   final authProvider =
                       Provider.of<AuthProvider>(context, listen: false);
 
+                  print(
+                      '🛒 CheckoutScreen: Placing order with ${widget.cart.length} items');
+                  print('🛒 CheckoutScreen: Total amount: $totalWithDelivery');
+                  print(
+                      '🛒 CheckoutScreen: Payment method: $_selectedPaymentMethod');
+                  print(
+                      '🛒 CheckoutScreen: Delivery address: ${_whereToController.text}');
+                  print(
+                      '🛒 CheckoutScreen: Auth status: ${authProvider.isAuthenticated ? 'Authenticated' : 'Not authenticated'}');
+
+                  // Show a loading indicator while processing
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext context) {
+                      return const AlertDialog(
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text('Processing your order...'),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+
+                  // Create a timeout to prevent getting stuck indefinitely
+                  Timer? timeoutTimer;
+                  timeoutTimer = Timer(const Duration(seconds: 30), () {
+                    // Handle timeout case - close dialog and show error
+                    if (Navigator.canPop(context)) {
+                      Navigator.of(context).pop(); // Close the loading dialog
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Order processing timed out. Please try again.'),
+                        duration: Duration(seconds: 5),
+                      ),
+                    );
+                    print(
+                        '❌ CheckoutScreen: Order placement timed out after 30 seconds');
+                  });
+
                   // Refresh authentication status to ensure it's current
                   if (authProvider.isAuthenticated) {
                     try {
+                      print(
+                          '🛒 CheckoutScreen: Starting order creation process...');
                       // Create a new order
                       final order = await orderProvider.createOrder(
                         items: widget.cart,
@@ -373,7 +423,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         deliveryAddress: _whereToController.text,
                       );
 
+                      // Cancel the timeout timer since we got a response
+                      timeoutTimer.cancel();
+                      print(
+                          '🛒 CheckoutScreen: Order creation completed with ID: ${order.id}');
+
+                      // Safety check if context is still valid
+                      if (!mounted) return;
+
+                      // Close the loading dialog if it's still showing
+                      if (Navigator.canPop(context)) {
+                        Navigator.of(context).pop();
+                      }
+
+                      if (order.id.startsWith('error')) {
+                        // Show error message if order creation fails
+                        print(
+                            '❌ CheckoutScreen: Order creation failed with error ID');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Error connecting to server. Please try again.'),
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+                        return;
+                      }
+
                       // Only clear the cart after successful order creation
+                      print(
+                          '🛒 CheckoutScreen: Clearing cart after successful order');
                       cartProvider.clearCart();
 
                       // Show order success dialog
@@ -399,7 +478,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Order #: ${order.id.substring(0, 8)}',
+                                  'Order #: ${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
                                   style: const TextStyle(fontSize: 14),
                                 ),
                                 const SizedBox(height: 4),
@@ -464,15 +543,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         },
                       );
                     } catch (error) {
-                      // Show error message if order creation fails
+                      // Cancel the timeout timer
+                      timeoutTimer.cancel();
+
+                      // Safety check if context is still valid
+                      if (!mounted) return;
+
+                      // Close the loading dialog if it's still showing
+                      if (Navigator.canPop(context)) {
+                        Navigator.of(context).pop();
+                      }
+
+                      // Show detailed error message if order creation fails
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error placing order: $error'),
                           duration: const Duration(seconds: 5),
+                          action: SnackBarAction(
+                            label: 'Retry',
+                            onPressed: () {
+                              // Retry order placement with the current total amount
+                              _placeOrder(cartProvider, orderProvider,
+                                  authProvider, totalWithDelivery.toInt());
+                            },
+                          ),
                         ),
                       );
                     }
                   } else {
+                    // Cancel the timeout timer
+                    timeoutTimer.cancel();
+
+                    // Safety check if context is still valid
+                    if (!mounted) return;
+
+                    // Close the loading dialog if it's still showing
+                    if (Navigator.canPop(context)) {
+                      Navigator.of(context).pop();
+                    }
+
                     // Handle not authenticated case
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -529,5 +638,239 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ],
     );
+  }
+
+  void _placeOrder(
+    CartProvider cartProvider,
+    OrderProvider orderProvider,
+    AuthProvider authProvider,
+    int totalAmount,
+  ) async {
+    // Get the current totalWithDelivery from the widget
+    final double totalWithDelivery = widget.totalPrice + deliveryFee;
+
+    print('🛒 _placeOrder: Retrying order placement with amount: $totalAmount');
+    print('🛒 _placeOrder: Payment method: $_selectedPaymentMethod');
+    print('🛒 _placeOrder: Delivery address: ${_whereToController.text}');
+
+    if (_whereToController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter delivery address')),
+      );
+      return;
+    }
+    if (_selectedPaymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a payment method')),
+      );
+      return;
+    }
+
+    // Show a loading indicator while processing
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Processing your order...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    // Create a timeout to prevent getting stuck indefinitely
+    Timer? timeoutTimer;
+    timeoutTimer = Timer(const Duration(seconds: 30), () {
+      // Handle timeout case - close dialog and show error
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop(); // Close the loading dialog
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order processing timed out. Please try again.'),
+          duration: Duration(seconds: 5),
+        ),
+      );
+      print('❌ _placeOrder: Order placement timed out after 30 seconds');
+    });
+
+    // Refresh authentication status to ensure it's current
+    if (authProvider.isAuthenticated) {
+      try {
+        print('🛒 _placeOrder: Creating order...');
+        // Create a new order
+        final order = await orderProvider.createOrder(
+          items: widget.cart,
+          totalAmount: totalAmount,
+          paymentMethod: _selectedPaymentMethod!,
+          deliveryAddress: _whereToController.text,
+        );
+
+        // Cancel the timeout timer since we got a response
+        timeoutTimer.cancel();
+        print('🛒 _placeOrder: Order creation completed with ID: ${order.id}');
+
+        // Safety check if context is still valid
+        if (!mounted) return;
+
+        // Close the loading dialog if it's still showing
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        }
+
+        if (order.id.startsWith('error')) {
+          // Show error message if order creation fails
+          print('❌ _placeOrder: Order creation failed with error ID');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error connecting to server. Please try again.'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+          return;
+        }
+
+        // Only clear the cart after successful order creation
+        print('🛒 _placeOrder: Clearing cart after successful order');
+        cartProvider.clearCart();
+
+        // Show order success dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 28),
+                  SizedBox(width: 8),
+                  Text('Order Successful!'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your order has been placed successfully.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Order #: ${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Payment Method: $_selectedPaymentMethod',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Delivery Address: ${_whereToController.text}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Total Amount: UGX $totalAmount',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Navigate to Orders page
+                    Navigator.pushNamed(context, '/orders');
+                  },
+                  child: const Text('View Orders'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Return to main screen after order
+                    final userEmail = authProvider.userData?['email'] ?? '';
+                    final firstName =
+                        authProvider.userData?['first_name'] ?? '';
+                    final lastName = authProvider.userData?['last_name'] ?? '';
+                    final initials = firstName.isNotEmpty && lastName.isNotEmpty
+                        ? '${firstName[0]}${lastName[0]}'
+                        : '';
+
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/dashboard',
+                      (route) => false,
+                      arguments: {
+                        'userEmail': userEmail,
+                        'userInitials': initials,
+                      },
+                    );
+                  },
+                  child: const Text('Continue Shopping'),
+                ),
+              ],
+            );
+          },
+        );
+      } catch (error) {
+        // Cancel the timeout timer
+        timeoutTimer.cancel();
+
+        // Safety check if context is still valid
+        if (!mounted) return;
+
+        // Close the loading dialog if it's still showing
+        if (Navigator.canPop(context)) {
+          Navigator.of(context).pop();
+        }
+
+        // Show detailed error message if order creation fails
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error placing order: $error'),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () {
+                // Retry order placement with the current total amount
+                _placeOrder(cartProvider, orderProvider, authProvider,
+                    totalWithDelivery.toInt());
+              },
+            ),
+          ),
+        );
+      }
+    } else {
+      // Cancel the timeout timer
+      timeoutTimer.cancel();
+
+      // Safety check if context is still valid
+      if (!mounted) return;
+
+      // Close the loading dialog if it's still showing
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+
+      // Handle not authenticated case
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please log in to place an order'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      // Navigate to login screen
+      Navigator.of(context).pushNamed('/login');
+    }
   }
 }

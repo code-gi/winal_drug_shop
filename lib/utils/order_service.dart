@@ -2,12 +2,21 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
+import 'dart:math' as math; // Add import for math functions
 import 'package:winal_front_end/models/order.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 
 class OrderService {
   // Base URL for the Flask backend API - should match your auth_service.dart
+  // Update this URL if your backend server is running on a different address
   final String baseUrl = 'http://192.168.43.57:5000';
+
+  // Alternative server URLs to try if the primary one fails
+  final List<String> fallbackUrls = [
+    'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
+    'http://localhost:5000', // Local development
+    'http://10.0.2.2:5000' // Android emulator to host loopback
+  ];
 
   // Get token from SharedPreferences
   Future<String?> _getToken() async {
@@ -23,9 +32,20 @@ class OrderService {
     required String deliveryAddress,
   }) async {
     try {
+      // Enhanced logging
+      print('⭐ Creating order with ${items.length} items, total: $totalAmount');
+      print(
+          '📝 Items detail: ${items.map((item) => "${item.product.name} x${item.quantity}").join(", ")}');
+
       final token = await _getToken();
+      print('🔑 Auth token: ${token != null ? 'Found' : 'Missing'}');
+      if (token != null) {
+        print(
+            '🔑 Token preview: ${token.substring(0, math.min(20, token.length))}...');
+      }
 
       if (token == null) {
+        print('❌ Failed to create order: No auth token');
         return {
           'success': false,
           'message': 'You need to be logged in to place an order',
@@ -38,6 +58,8 @@ class OrderService {
                 'product_id': item.product.id,
                 'quantity': item.quantity,
                 'price': item.product.price,
+                'type': item.product.type, // Add product type
+                'name': item.product.name, // Add product name
               })
           .toList();
 
@@ -49,43 +71,79 @@ class OrderService {
         'delivery_address': deliveryAddress,
       };
 
-      // Make API call
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/orders'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode(orderData),
-      );
+      print('📦 Order data: ${json.encode(orderData)}');
 
-      developer.log('Create order response: ${response.statusCode}');
+      // Try each server URL in sequence
+      Map<String, dynamic> responseData = {};
+      int responseCode = 0;
+      String responseBody = '';
+      bool success = false;
 
-      if (response.body.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Empty response from server',
-        };
+      for (String url in fallbackUrls) {
+        try {
+          print('🔄 Trying server URL: $url');
+
+          // Make sure URL has trailing slash for orders endpoint
+          final apiUrl = '$url/api/orders/';
+          print('🔄 Using API URL: $apiUrl');
+
+          final response = await http.post(
+            Uri.parse(apiUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: json.encode(orderData),
+          );
+
+          responseCode = response.statusCode;
+          responseBody = response.body;
+
+          print(
+              '📡 Response from $url: Code=$responseCode, Body length=${responseBody.length}');
+          print('📡 Full response body: $responseBody');
+
+          if (responseBody.isNotEmpty) {
+            try {
+              responseData = json.decode(responseBody);
+              success = true;
+              print('✅ Successfully connected to server: $url');
+              print('✅ Response data: ${json.encode(responseData)}');
+              break; // Stop trying other URLs if this one worked
+            } catch (e) {
+              print('❌ Error parsing response from $url: $e');
+              continue; // Try next URL
+            }
+          }
+        } catch (e) {
+          print('❌ Failed to connect to server $url: $e');
+          // Continue to next URL
+        }
       }
 
-      final responseData = json.decode(response.body);
-
-      if (response.statusCode == 201) {
+      if (success && (responseCode == 200 || responseCode == 201)) {
+        print('✅ Order created successfully');
         return {
           'success': true,
           'data': responseData,
         };
       } else {
+        String errorMessage =
+            responseData['message'] ?? 'Failed to create order';
+        print('❌ Order creation failed: $errorMessage (Code=$responseCode)');
+
         return {
           'success': false,
-          'message': responseData['message'] ?? 'Failed to create order',
+          'message': errorMessage,
+          'status_code': responseCode,
+          'response_body': responseBody,
         };
       }
     } catch (e) {
-      developer.log('Create order error', error: e);
+      print('❌ Exception in order creation: ${e.toString()}');
       return {
         'success': false,
-        'message': 'Network error: ${e.toString()}',
+        'message': 'Error creating order: ${e.toString()}',
       };
     }
   }
@@ -102,16 +160,21 @@ class OrderService {
         };
       }
 
+      // Make sure URL has trailing slash
+      final apiUrl = '$baseUrl/api/orders/';
+      print('🔄 Getting orders using URL: $apiUrl');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/api/orders'),
+        Uri.parse(apiUrl),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      developer.log('Get orders response: ${response.statusCode}');
+      print('📡 Get orders response: ${response.statusCode}');
 
       if (response.body.isEmpty) {
+        print('❌ Empty response from server when fetching orders');
         return {
           'success': false,
           'message': 'Empty response from server',
@@ -119,6 +182,7 @@ class OrderService {
       }
 
       final responseData = json.decode(response.body);
+      print('📡 Orders response data received');
 
       if (response.statusCode == 200) {
         return {
@@ -126,13 +190,15 @@ class OrderService {
           'data': responseData,
         };
       } else {
+        print(
+            '❌ Failed to get orders: ${responseData['message'] ?? 'Unknown error'}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Failed to get orders',
         };
       }
     } catch (e) {
-      developer.log('Get orders error', error: e);
+      print('❌ Get orders error: ${e.toString()}');
       return {
         'success': false,
         'message': 'Network error: ${e.toString()}',
@@ -152,16 +218,21 @@ class OrderService {
         };
       }
 
+      // Make sure URL has trailing slash
+      final apiUrl = '$baseUrl/api/orders/$orderId/';
+      print('🔄 Getting order details using URL: $apiUrl');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/api/orders/$orderId'),
+        Uri.parse(apiUrl),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      developer.log('Get order response: ${response.statusCode}');
+      print('📡 Get order response: ${response.statusCode}');
 
       if (response.body.isEmpty) {
+        print('❌ Empty response from server when fetching order details');
         return {
           'success': false,
           'message': 'Empty response from server',
@@ -176,13 +247,15 @@ class OrderService {
           'data': responseData,
         };
       } else {
+        print(
+            '❌ Failed to get order details: ${responseData['message'] ?? 'Unknown error'}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Failed to get order details',
         };
       }
     } catch (e) {
-      developer.log('Get order error', error: e);
+      print('❌ Get order error: ${e.toString()}');
       return {
         'success': false,
         'message': 'Network error: ${e.toString()}',
@@ -202,16 +275,21 @@ class OrderService {
         };
       }
 
+      // Make sure URL has trailing slash
+      final apiUrl = '$baseUrl/api/orders/$orderId/cancel/';
+      print('🔄 Cancelling order using URL: $apiUrl');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/api/orders/$orderId/cancel'),
+        Uri.parse(apiUrl),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
-      developer.log('Cancel order response: ${response.statusCode}');
+      print('📡 Cancel order response: ${response.statusCode}');
 
       if (response.body.isEmpty) {
+        print('❌ Empty response from server when cancelling order');
         return {
           'success': false,
           'message': 'Empty response from server',
@@ -226,13 +304,15 @@ class OrderService {
           'data': responseData,
         };
       } else {
+        print(
+            '❌ Failed to cancel order: ${responseData['message'] ?? 'Unknown error'}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Failed to cancel order',
         };
       }
     } catch (e) {
-      developer.log('Cancel order error', error: e);
+      print('❌ Cancel order error: ${e.toString()}');
       return {
         'success': false,
         'message': 'Network error: ${e.toString()}',
