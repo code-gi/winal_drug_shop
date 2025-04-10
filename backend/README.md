@@ -241,6 +241,15 @@ backend/
 
 ## Development Roadmap
 
+### Database Population
+
+```
+python populate_db.py
+
+# Populate farm activities data
+python populate_farm_activities.py
+```
+
 ### Current Status
 - ✅ User Authentication (Register, Login, Logout)
 - ✅ Password Reset Endpoints
@@ -366,3 +375,12 @@ When implementing the medication display screens, use the following API endpoint
 - `GET /api/medications?type=animal` - Get all animal medications with their images
 
 ## Development Roadmap
+
+### Database Population
+
+```
+python populate_db.py
+
+# Populate farm activities data
+python populate_farm_activities.py
+```

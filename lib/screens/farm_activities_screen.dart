@@ -1,29 +1,44 @@
 import 'package:flutter/material.dart';
-import 'medications_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../models/farm_activity.dart';
 
-void main() {
-  runApp(MyApp());
-}
+class FarmActivitiesScreen extends StatefulWidget {
+  const FarmActivitiesScreen({Key? key}) : super(key: key);
 
-class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: FarmActivitiesScreen(),
-    );
-  }
+  _FarmActivitiesScreenState createState() => _FarmActivitiesScreenState();
 }
 
-class FarmActivitiesScreen extends StatelessWidget {
-  // List of activities with their labels and placeholder image paths
-  final List<Map<String, String>> activities = [
-    {'label': 'Farm visits', 'image': 'assets/images/FARM VISITS.jpeg'},
-    {'label': 'Seminars', 'image': 'assets/images/SEMINARS.jpeg'},
-    {'label': 'Retreats', 'image': 'assets/images/RETREATS.jpeg'},
-    {'label': 'Mentorship', 'image': 'assets/images/MENTORSHIP.jpeg'},
-    {'label': 'Construction', 'image': 'assets/images/CONSTRUCTION.jpeg'},
-    {'label': 'Financial services', 'image': 'assets/images/FINANCIAL.jpeg'},
-  ];
+class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
+  List<FarmActivity> activities = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchFarmActivities();
+  }
+
+  Future<void> fetchFarmActivities() async {
+    try {
+      final response = await http.get(Uri.parse('http://localhost:5000/farm-activities'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          activities = data.map((json) => FarmActivity.fromJson(json)).toList();
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load farm activities')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,68 +46,110 @@ class FarmActivitiesScreen extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Farm Activities'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.green,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0), // Reduced overall padding
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2 columns
-            crossAxisSpacing: 8.0, // Reduced spacing between columns
-            mainAxisSpacing: 8.0, // Reduced spacing between rows
-            childAspectRatio: 0.75, // Adjusted aspect ratio to fit rectangular cards better
-          ),
-          itemCount: activities.length,
-          itemBuilder: (context, index) {
-            return ActivityCard(
-              label: activities[index]['label']!,
-              imagePath: activities[index]['image']!,
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class ActivityCard extends StatelessWidget {
-  final String label;
-  final String imagePath;
-
-  const ActivityCard({required this.label, required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Rectangular image container with rounded corners
-        Container(
-          width: double.infinity, // Take full width of the grid cell
-          height: 120, // Fixed height for the image
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10), // Rounded corners
-            image: DecorationImage(
-              image: AssetImage(imagePath), // Use the image path
-              fit: BoxFit.cover, // Ensure the image covers the container
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: fetchFarmActivities,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16.0),
+                itemCount: activities.length,
+                itemBuilder: (context, index) {
+                  final activity = activities[index];
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.only(bottom: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/book_appointment',
+                          arguments: activity,
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                            child: Image.network(
+                              activity.imagePath,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 200,
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.error_outline,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activity.name,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  activity.description,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'UGX ${activity.price.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${activity.duration} minutes',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 4.0), // Reduced space between image and label
-        // Label text
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 }
