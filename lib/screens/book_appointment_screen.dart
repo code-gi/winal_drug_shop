@@ -3,6 +3,9 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/farm_activity.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../utils/auth_provider.dart';
+import '../utils/auth_service.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final FarmActivity activity;
@@ -18,6 +21,15 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedTime = TimeOfDay.now();
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    print('BookAppointmentScreen initialized with activity:');
+    print('Activity ID: ${widget.activity.id}');
+    print('Activity Name: ${widget.activity.name}');
+    print('Activity Description: ${widget.activity.description}');
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -68,24 +80,54 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   }
 
   Future<void> _bookAppointment() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final token = await authService.getToken();
+
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Session expired. Please login again')));
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+
     setState(() {
       isLoading = true;
     });
 
+    http.Response? response;
     try {
-      final response = await http.post(
-        Uri.parse('http://localhost:5000/appointments'),
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication required')),
+        );
+        return;
+      }
+
+      // Debug prints to verify the data being sent
+      print('Sending appointment request with:');
+      print('farm_activity_id: ${widget.activity.id}');
+      print(
+          'appointment_date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}');
+      print(
+          'appointment_time: ${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}');
+
+      response = await http.post(
+        Uri.parse('${authService.baseUrl}/api/appointments'),
         headers: {
           'Content-Type': 'application/json',
-          // Add your authentication token here
-          'Authorization': 'Bearer YOUR_TOKEN',
+          'Authorization': 'Bearer $token',
         },
         body: json.encode({
+          // Changed field names to match what the API expects
           'farm_activity_id': widget.activity.id,
           'appointment_date': DateFormat('yyyy-MM-dd').format(selectedDate),
-          'appointment_time': '${selectedTime.hour}:${selectedTime.minute}',
+          'appointment_time':
+              '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
         }),
       );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       if (response.statusCode == 201) {
         final appointmentData = json.decode(response.body);
@@ -99,13 +141,16 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to book appointment')),
+          SnackBar(
+              content: Text('Failed to book appointment: ${response.body}')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
+      print('Error booking appointment: $e');
+      print('Response body: ${response?.body ?? 'No response'}');
     } finally {
       setState(() {
         isLoading = false;

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/farm_activity.dart';
+import 'package:provider/provider.dart';
+import '../utils/auth_service.dart';
+import 'dart:developer' as developer;
 
 class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic> args;
@@ -19,6 +22,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _phoneController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-populate phone number if available
+    _phoneController.text =
+        ''; // You could get this from user profile if stored
+  }
+
+  @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
@@ -32,12 +43,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
+      // Get auth token using AuthService
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final token = await authService.getToken();
+
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please login again')),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final appointmentId = widget.args['appointment']['id'];
+
+      // Debug prints
+      developer.log('Processing payment for appointment ID: $appointmentId');
+      developer.log('Payment method: $selectedPaymentMethod');
+      developer.log('Phone number: ${_phoneController.text}');
+
+      // Use the baseUrl from AuthService instead of hardcoded localhost
       final response = await http.post(
         Uri.parse(
-            'http://localhost:5000/appointments/${widget.args['appointment']['id']}/payment'),
+            '${authService.baseUrl}/api/appointments/$appointmentId/payment'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
+          'Authorization': 'Bearer $token',
         },
         body: json.encode({
           'payment_method': selectedPaymentMethod,
@@ -45,16 +76,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
         }),
       );
 
-      if (response.statusCode == 200) {
+      developer.log('Payment response status: ${response.statusCode}');
+      developer.log('Payment response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
         _showSuccessDialog();
       } else {
+        String errorMessage = 'Payment failed';
+        try {
+          final responseData = json.decode(response.body);
+          errorMessage = responseData['message'] ?? 'Payment failed';
+        } catch (e) {
+          // If response body can't be decoded as JSON
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment failed')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } catch (e) {
+      developer.log('Payment error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
+        SnackBar(content: Text('An error occurred: ${e.toString()}')),
       );
     } finally {
       setState(() {

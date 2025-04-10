@@ -20,13 +20,19 @@ def get_farm_activity(id):
 @bp.route('/appointments', methods=['POST'])
 @token_required
 def create_appointment(current_user):
+    print('\n=== APPOINTMENT REQUEST RECEIVED ===')
+    print(f'User ID: {current_user.id}')
+    print('Request data:', request.json)
+    print('----------------------------------')
     data = request.get_json()
     
     # Validate required fields
     required_fields = ['farm_activity_id', 'appointment_date', 'appointment_time']
-    for field in required_fields:
-        if field not in data:
-            return jsonify({'error': f'Missing required field: {field}'}), 400
+    print('Validating required fields:', required_fields)
+    if not all(field in data for field in required_fields):
+        print('Validation failed - missing fields:', [field for field in required_fields if field not in data])
+        return jsonify({'message': 'Missing required fields'}), 400
+    print('All required fields present')
     
     # Get the farm activity to calculate total amount
     activity = FarmActivity.query.get_or_404(data['farm_activity_id'])
@@ -40,8 +46,15 @@ def create_appointment(current_user):
         total_amount=activity.price
     )
     
+    print('Creating appointment in database:', {
+        'user_id': current_user.id,
+        'activity_id': data['farm_activity_id'],
+        'date': data['appointment_date'],
+        'time': data['appointment_time']
+    })
     db.session.add(appointment)
     db.session.commit()
+    print('Appointment successfully created with ID:', appointment.id)
     
     return jsonify(appointment.to_dict()), 201
 

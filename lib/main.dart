@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/screens/welcome_screen.dart' hide SplashScreen;
+import 'package:winal_front_end/screens/payment_screen.dart';
 import 'package:winal_front_end/screens/splash_screen.dart';
 import 'package:winal_front_end/screens/sign_up_screen.dart' hide LoginScreen;
 import 'package:winal_front_end/screens/login_screen.dart' as login;
@@ -15,12 +16,14 @@ import 'package:winal_front_end/screens/notifications_screen.dart';
 import 'package:winal_front_end/screens/farm_activities_screen.dart';
 import 'package:winal_front_end/models/farm_activity.dart';
 import 'package:winal_front_end/screens/book_appointment_screen.dart';
+import 'package:winal_front_end/screens/my_appointments_screen.dart'; // Add this import
 import 'package:winal_front_end/screens/checkout_screen.dart';
 import 'package:winal_front_end/screens/faqs_screen.dart';
 import 'package:winal_front_end/screens/feedback_screen.dart';
 import 'package:winal_front_end/screens/health_tips_screen.dart';
 import 'package:winal_front_end/screens/profile_screen.dart';
 import 'package:winal_front_end/screens/dashboard_screen.dart';
+import 'package:winal_front_end/utils/auth_service.dart'; // Add missing import
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
@@ -33,6 +36,8 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        Provider<AuthService>(
+            create: (_) => AuthService()), // Add AuthService provider
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
@@ -85,6 +90,9 @@ class _MyAppState extends State<MyApp> {
       ),
       home: const SplashScreen(),
       routes: {
+        '/payment': (context) => PaymentScreen(
+            args: ModalRoute.of(context)!.settings.arguments
+                as Map<String, dynamic>),
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const login.LoginScreen(),
         '/signup': (context) => const SignUpScreen(),
@@ -93,6 +101,8 @@ class _MyAppState extends State<MyApp> {
         '/chat': (context) => const ChatScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/farm_activities': (context) => FarmActivitiesScreen(),
+        '/my_appointments': (context) =>
+            const MyAppointmentsScreen(), // Added My Appointments route
         '/cart': (context) => const CartScreen(),
         '/orders': (context) => const OrdersScreen(),
         '/faqs': (context) => const FAQsScreen(),
@@ -180,7 +190,7 @@ class _MyAppState extends State<MyApp> {
             );
             return MaterialPageRoute(builder: (_) => FarmActivitiesScreen());
           }
-          
+
           try {
             final activity = settings.arguments as FarmActivity;
             if (activity.id == null || activity.name.isEmpty) {

@@ -207,6 +207,14 @@ class DashboardScreen extends StatelessWidget {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.event),
+              title: const Text('My Appointments'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/my_appointments');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.info),
               title: const Text('About Us'),
               onTap: () {

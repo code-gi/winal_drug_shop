@@ -8,12 +8,14 @@ class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   String? _errorMessage;
   Map<String, dynamic>? _userData;
+  String? _token;
   bool _isLoading = false;
 
   // Getters
   bool get isAuthenticated => _isAuthenticated;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic>? get userData => _userData;
+  String? get token => _token;
   bool get isLoading => _isLoading;
 
   // Constructor - check if user is already logged in
@@ -48,6 +50,7 @@ class AuthProvider extends ChangeNotifier {
     if (result['success']) {
       _isAuthenticated = true;
       _userData = result['data'];
+      _token = result['token'];
     } else {
       _errorMessage = result['message'];
     }
@@ -105,6 +108,7 @@ class AuthProvider extends ChangeNotifier {
 
     if (result['success']) {
       _userData = result['data'];
+      _token = result['token'];
     } else {
       // If getting profile fails, user might be logged out
       if (result['message'] == 'Not authenticated') {
