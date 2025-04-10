@@ -22,15 +22,25 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
 
   Future<void> fetchFarmActivities() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5000/farm-activities'));
+      print('Fetching farm activities...');
+      final response = await http
+          .get(Uri.parse('http://192.168.43.57:5000/api/farm-activities'));
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
           activities = data.map((json) => FarmActivity.fromJson(json)).toList();
           isLoading = false;
         });
+      } else {
+        print(
+            'Failed to fetch farm activities. Status code: ${response.statusCode}');
+        throw Exception('Failed to fetch farm activities');
       }
     } catch (e) {
+      print('Error fetching farm activities: $e');
       setState(() {
         isLoading = false;
       });
@@ -81,22 +91,28 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(12),
                             ),
-                            child: Image.network(
-                              activity.imagePath,
-                              height: 200,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 200,
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.error_outline,
-                                    size: 50,
-                                    color: Colors.grey,
+                            child: activity.imagePath.startsWith('assets/')
+                                ? Image.asset(
+                                    activity.imagePath,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.network(
+                                    activity.imagePath,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        height: 200,
+                                        color: Colors.grey[300],
+                                        child: const Icon(
+                                          Icons.error_outline,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16.0),

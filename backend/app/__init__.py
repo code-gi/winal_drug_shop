@@ -48,8 +48,10 @@ def create_app(config_name='default'):
     from .routes.categories import categories_bp
     from .routes.seed import seed_bp
     from .routes.orders import orders_bp
+    from .routes.farm_activities import bp as farm_activities_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(farm_activities_bp, url_prefix='/api')
     app.register_blueprint(users_bp, url_prefix='/api/users')
     app.register_blueprint(medications_bp, url_prefix='/api/medications')
     app.register_blueprint(categories_bp, url_prefix='/api/categories')
