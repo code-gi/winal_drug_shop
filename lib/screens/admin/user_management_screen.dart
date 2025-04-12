@@ -21,7 +21,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    // Use Future.microtask to avoid calling setState during build
+    Future.microtask(_loadUsers);
   }
 
   @override
@@ -31,18 +32,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Future<void> _loadUsers() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Don't use ScaffoldMessenger here as it may cause issues during initState
       await Provider.of<UserProvider>(context, listen: false).loadUsers();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading users: ${e.toString()}')),
-        );
-      }
+      print('Error loading users: $e');
+      // Handle error without ScaffoldMessenger here
     } finally {
       if (mounted) {
         setState(() {

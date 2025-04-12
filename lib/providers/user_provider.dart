@@ -8,6 +8,7 @@ class UserProvider extends ChangeNotifier {
   List<User> _users = [];
   bool _isLoading = false;
   String? _error;
+  bool _usedCachedData = false;
 
   // Get token from SharedPreferences
   Future<String?> _getToken() async {
@@ -19,11 +20,45 @@ class UserProvider extends ChangeNotifier {
   List<User> get users => _users;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get usedCachedData => _usedCachedData;
+
+  // Cache users data in SharedPreferences
+  Future<void> _cacheUsersData(List<User> users) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final usersJson = users.map((user) => user.toJson()).toList();
+      await prefs.setString('cached_users', json.encode(usersJson));
+      await prefs.setInt(
+          'users_cache_time', DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      print('❌ Error caching users data: $e');
+    }
+  }
+
+  // Load cached users data
+  Future<List<User>?> _loadCachedUsers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString('cached_users');
+      final cacheTime = prefs.getInt('users_cache_time') ?? 0;
+
+      // Check if cache is not too old (less than 1 hour)
+      final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTime;
+      if (cachedData != null && cacheAge < 3600000) {
+        final List<dynamic> usersJson = json.decode(cachedData);
+        return usersJson.map((data) => User.fromJson(data)).toList();
+      }
+    } catch (e) {
+      print('❌ Error loading cached users: $e');
+    }
+    return null;
+  }
 
   // Load users from API
   Future<void> loadUsers({String? role}) async {
     _isLoading = true;
     _error = null;
+    _usedCachedData = false;
     notifyListeners();
 
     try {
@@ -35,6 +70,14 @@ class UserProvider extends ChangeNotifier {
         return;
       }
 
+      // Try to load cached users first for immediate display
+      final cachedUsers = await _loadCachedUsers();
+      if (cachedUsers != null && cachedUsers.isNotEmpty) {
+        _users = cachedUsers;
+        _usedCachedData = true;
+        notifyListeners();
+      }
+
       // Base URL - should match your auth service
       String baseUrl = 'http://192.168.43.57:5000';
 
@@ -42,7 +85,8 @@ class UserProvider extends ChangeNotifier {
       List<String> fallbackUrls = [
         'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
         'http://localhost:5000', // Local development
-        'http://10.0.2.2:5000' // Android emulator to host loopback
+        'http://10.0.2.2:5000', // Android emulator to host loopback
+        'https://winal-api.onrender.com' // Add your production URL if available
       ];
 
       // Build query parameters
@@ -51,11 +95,15 @@ class UserProvider extends ChangeNotifier {
         queryParams['role'] = role;
       }
 
+      bool success = false;
+
       for (String url in fallbackUrls) {
+        if (success) break;
+
         try {
           print('🔄 Attempting to fetch users from: $url');
 
-          final Uri uri = Uri.parse('$url/api/users/')
+          final uri = Uri.parse('$url/api/users/')
               .replace(queryParameters: queryParams);
 
           final response = await http.get(
@@ -64,7 +112,7 @@ class UserProvider extends ChangeNotifier {
               'Authorization': 'Bearer $token',
               'Content-Type': 'application/json',
             },
-          );
+          ).timeout(const Duration(seconds: 10));
 
           print('📡 Users response: ${response.statusCode}');
 
@@ -77,10 +125,14 @@ class UserProvider extends ChangeNotifier {
                   .toList();
 
               print('✅ Successfully loaded ${_users.length} users');
-              _isLoading = false;
+
+              // Cache the successful response
+              await _cacheUsersData(_users);
+
               _error = null;
-              notifyListeners();
-              return; // Success, exit the fallback loop
+              _usedCachedData = false;
+              success = true;
+              // Don't notify here, wait until the end
             } else {
               print('❌ Users data is null or malformed');
               // Continue to next server
@@ -90,15 +142,18 @@ class UserProvider extends ChangeNotifier {
             // Continue to next server
           }
         } catch (e) {
-          print('❌ Error connecting to $url: ${e.toString()}');
+          print('❌ Error connecting to $url: $e');
           // Continue to next server
         }
       }
 
-      // If we reach here, all servers failed
-      _error = 'Failed to connect to server';
+      if (!success && !_usedCachedData) {
+        // If all servers failed and we don't have cached data
+        _error =
+            'Failed to connect to server. Please check your internet connection.';
+      }
     } catch (e) {
-      print('❌ Error in loadUsers: ${e.toString()}');
+      print('❌ Error in loadUsers: $e');
       _error = e.toString();
     } finally {
       _isLoading = false;
