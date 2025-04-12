@@ -28,6 +28,7 @@ import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/utils/medication_provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
 import 'package:winal_front_end/providers/order_provider.dart';
+import 'package:winal_front_end/providers/category_provider.dart'; // Added CategoryProvider import
 import 'package:winal_front_end/screens/admin/admin_dashboard_screen.dart';
 import 'package:winal_front_end/screens/cart_screen.dart';
 import 'package:winal_front_end/screens/orders_screen.dart';
@@ -42,6 +43,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => MedicationProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(
+            create: (_) => CategoryProvider()), // Added CategoryProvider
       ],
       child: const MyApp(),
     ),

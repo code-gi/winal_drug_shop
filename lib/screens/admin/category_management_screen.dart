@@ -15,14 +15,20 @@ class CategoryManagementScreen extends StatefulWidget {
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   String _categoryType = 'human'; // Default to human categories
   bool _isLoading = false;
+  bool _isInitialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadCategories();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _loadCategories();
+    }
   }
 
   Future<void> _loadCategories() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -31,13 +37,17 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       await Provider.of<CategoryProvider>(context, listen: false)
           .loadCategories(type: _categoryType);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading categories: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading categories: ${e.toString()}')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
