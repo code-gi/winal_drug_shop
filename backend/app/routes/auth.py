@@ -7,9 +7,77 @@ from flask_jwt_extended import (
     get_jwt
 )
 from app.models.user import User
+from app.schemas import UserSchema
+from marshmallow import ValidationError
+from app import db
 from datetime import datetime, timedelta, timezone
 
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    """Register a new user"""
+    # Get request data
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'No data provided'}), 400
+
+    # Convert date format if provided
+    if 'date_of_birth' in data:
+        try:
+            # Convert from "M/D/YYYY" to "YYYY-MM-DD"
+            dob = datetime.strptime(data['date_of_birth'], '%m/%d/%Y')
+            data['date_of_birth'] = dob.strftime('%Y-%m-%d')
+        except ValueError as e:
+            return jsonify({
+                'message': 'Invalid date format',
+                'error': 'Date must be in format MM/DD/YYYY'
+            }), 400
+
+    print(f"Registration request data: {data}")  # Debug print
+
+    # Get and validate data using UserSchema
+    schema = UserSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        print(f"Validation error: {err.messages}")  # Debug print
+        return jsonify({
+            'message': 'Validation error',
+            'errors': err.messages
+        }), 400
+
+    # Check if user already exists
+    if User.query.filter_by(email=validated_data['email']).first():
+        return jsonify({'message': 'Email already registered'}), 400
+
+    # Create new user
+    try:
+        new_user = User(
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data.get('phone_number'),
+            date_of_birth=datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if 'date_of_birth' in data else None
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Generate tokens
+        access_token = create_access_token(identity=new_user.id)
+        refresh_token = create_refresh_token(identity=new_user.id)
+
+        return jsonify({
+            'message': 'Registration successful',
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': new_user.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'message': f'Error creating user: {str(e)}'}), 500
 
 @auth_bp.route('/login', methods=['POST'])
 def login():

@@ -1,4 +1,5 @@
 from marshmallow import Schema, fields, validate, ValidationError
+from datetime import datetime
 
 class UserSchema(Schema):
     """Schema for User model serialization/deserialization"""
@@ -17,6 +18,8 @@ class UserSchema(Schema):
     )
     first_name = fields.Str(required=True, validate=validate.Length(min=1))
     last_name = fields.Str(required=True, validate=validate.Length(min=1))
+    phone_number = fields.Str(required=False)
+    date_of_birth = fields.Date(required=False, format='%Y-%m-%d')
     is_admin = fields.Bool(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
