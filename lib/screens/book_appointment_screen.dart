@@ -82,10 +82,9 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
   Future<void> _bookAppointment() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final token = await authService.getToken();
-
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Session expired. Please login again')));
+          const SnackBar(content: Text('Session expired. Please login again')));
       Navigator.pushReplacementNamed(context, '/login');
       return;
     }
@@ -96,13 +95,6 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
     http.Response? response;
     try {
-      if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Authentication required')),
-        );
-        return;
-      }
-
       // Debug prints to verify the data being sent
       print('Sending appointment request with:');
       print('farm_activity_id: ${widget.activity.id}');

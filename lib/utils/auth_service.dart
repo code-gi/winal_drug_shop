@@ -1,41 +1,97 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
 class AuthService {
-  Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
-  }
   // Base URL for the Flask backend API
-  // For Android emulator, use 10.0.2.2
-  // For physical device on same network, use your computer's IP address
   final String baseUrl = 'http://192.168.43.57:5000';
+  static const String TOKEN_KEY = 'auth_token';
 
   // Save token to SharedPreferences
-  Future<void> _saveToken(String token) async {
+  Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    await prefs.setString(TOKEN_KEY, token);
   }
 
   // Get token from SharedPreferences
-  Future<String?> _getToken() async {
+  Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    return prefs.getString(TOKEN_KEY);
   }
 
   // Remove token from SharedPreferences
-  Future<void> _removeToken() async {
+  Future<void> removeToken() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    await prefs.remove(TOKEN_KEY);
+  }
+
+  // Try to refresh an expired token
+  Future<Map<String, dynamic>> tryRefreshToken() async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return {
+          'success': false,
+          'message': 'No token to refresh',
+        };
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/auth/refresh'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['access_token'] != null) {
+          await saveToken(responseData['access_token']);
+          return {
+            'success': true,
+            'message': 'Token refreshed successfully',
+          };
+        }
+      }
+
+      return {
+        'success': false,
+        'message': 'Failed to refresh token',
+      };
+    } catch (e) {
+      developer.log('Token refresh error', error: e);
+      return {
+        'success': false,
+        'message': 'Error during token refresh: ${e.toString()}',
+      };
+    }
   }
 
   // Check if user is logged in
   Future<bool> isLoggedIn() async {
-    final token = await _getToken();
-    return token != null;
+    final token = await getToken();
+    if (token == null) return false;
+
+    // Verify token validity
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/auth/token-debug'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) return true;
+
+      // If token is invalid, try to refresh it
+      final refreshResult = await tryRefreshToken();
+      return refreshResult['success'];
+    } catch (e) {
+      return false;
+    }
   }
 
   // Login method
@@ -55,8 +111,7 @@ class AuthService {
       if (response.statusCode == 200) {
         // Save the token if login successful
         if (responseData['access_token'] != null) {
-          await _saveToken(responseData['access_token']);
-          // Debug log to confirm token was saved
+          await saveToken(responseData['access_token']);
           developer.log(
               'Token saved: ${responseData['access_token'].substring(0, 10)}...');
         } else {
@@ -128,13 +183,13 @@ class AuthService {
 
   // Logout method
   Future<void> logout() async {
-    await _removeToken();
+    await removeToken();
   }
 
   // Get user profile - improved version
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
-      final token = await _getToken();
+      final token = await getToken();
       developer.log(
           'Getting profile with token: ${token?.substring(0, 10) ?? "null"}...');
 
@@ -145,19 +200,6 @@ class AuthService {
         };
       }
 
-      // First try the debug endpoint to check token status
-      final debugResponse = await http.get(
-        Uri.parse('$baseUrl/api/users/me/debug'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      developer.log('Profile debug response: ${debugResponse.statusCode}');
-      developer.log('Profile debug body: ${debugResponse.body}');
-
-      // Then attempt to get the actual profile
       final response = await http.get(
         Uri.parse('$baseUrl/api/users/me'),
         headers: {
@@ -166,14 +208,12 @@ class AuthService {
         },
       );
 
-      developer.log('Profile response status: ${response.statusCode}');
-
       if (response.statusCode == 401) {
         // Try to refresh token and retry (only once)
-        final refreshResult = await _tryRefreshToken();
+        final refreshResult = await tryRefreshToken();
         if (refreshResult['success']) {
           // Retry with new token
-          final newToken = await _getToken();
+          final newToken = await getToken();
           final retryResponse = await http.get(
             Uri.parse('$baseUrl/api/users/me'),
             headers: {
@@ -191,7 +231,7 @@ class AuthService {
         }
 
         // If retry fails or refresh fails, report auth failure
-        await _removeToken();
+        await removeToken();
         return {
           'success': false,
           'message': 'Session expired. Please login again.',
@@ -228,54 +268,10 @@ class AuthService {
     }
   }
 
-  // Try to refresh an expired token
-  Future<Map<String, dynamic>> _tryRefreshToken() async {
-    try {
-      final token = await _getToken();
-      if (token == null) {
-        return {
-          'success': false,
-          'message': 'No token to refresh',
-        };
-      }
-
-      // This is a simplified token refresh - you might need to use a refresh token
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/refresh'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        if (responseData['access_token'] != null) {
-          await _saveToken(responseData['access_token']);
-          return {
-            'success': true,
-            'message': 'Token refreshed successfully',
-          };
-        }
-      }
-
-      return {
-        'success': false,
-        'message': 'Failed to refresh token',
-      };
-    } catch (e) {
-      developer.log('Token refresh error', error: e);
-      return {
-        'success': false,
-        'message': 'Error during token refresh: ${e.toString()}',
-      };
-    }
-  }
-
   // Debug token issues
   Future<Map<String, dynamic>> debugToken() async {
     try {
-      final token = await _getToken();
+      final token = await getToken();
       developer.log('Debugging token: ${token?.substring(0, 10) ?? "null"}...');
 
       if (token == null) {
@@ -320,7 +316,7 @@ class AuthService {
   // Alternative profile endpoint for testing
   Future<Map<String, dynamic>> getProfileAlt() async {
     try {
-      final token = await _getToken();
+      final token = await getToken();
       developer.log(
           'Getting profile with token: ${token?.substring(0, 10) ?? "null"}...');
 
@@ -346,7 +342,7 @@ class AuthService {
 
       if (response.statusCode == 401) {
         // Token might be invalid or expired, try to handle by logging out
-        await _removeToken();
+        await removeToken();
         return {
           'success': false,
           'message': 'Session expired. Please login again.',
@@ -390,7 +386,7 @@ class AuthService {
     required String phoneNumber,
   }) async {
     try {
-      final token = await _getToken();
+      final token = await getToken();
 
       if (token == null) {
         return {
@@ -412,12 +408,8 @@ class AuthService {
         }),
       );
 
-      developer.log('Update profile response status: ${response.statusCode}');
-      developer.log('Update profile response body: ${response.body}');
-
       if (response.statusCode == 401) {
-        // Token might be invalid or expired
-        await _removeToken();
+        await removeToken();
         return {
           'success': false,
           'message': 'Session expired. Please login again.',

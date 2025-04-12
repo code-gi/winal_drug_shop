@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:winal_front_end/screens/welcome_screen.dart' hide SplashScreen;
 import 'package:winal_front_end/screens/payment_screen.dart';
 import 'package:winal_front_end/screens/splash_screen.dart';
-import 'package:winal_front_end/screens/sign_up_screen.dart' hide LoginScreen;
+import 'package:winal_front_end/screens/sign_up_screen.dart';
 import 'package:winal_front_end/screens/login_screen.dart' as login;
 // import 'package:winal_front_end/screens/human_medications.dart';
 // import 'package:winal_front_end/screens/animal_medications.dart';
@@ -193,7 +193,8 @@ class _MyAppState extends State<MyApp> {
 
           try {
             final activity = settings.arguments as FarmActivity;
-            if (activity.id == null || activity.name.isEmpty) {
+            if (activity.name.isEmpty) {
+              // Remove null check since id is non-nullable
               throw ArgumentError('Invalid FarmActivity properties');
             }
             return MaterialPageRoute(

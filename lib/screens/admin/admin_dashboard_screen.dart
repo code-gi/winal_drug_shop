@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../utils/auth_service.dart';
 import 'medication_list_screen.dart';
 import 'category_management_screen.dart';
 import 'order_management_screen.dart';
@@ -31,59 +32,69 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'totalOrders': 0,
     'totalUsers': 0,
     'todaysRevenue': 0,
-    
+    'recentActivities': [],
     'lowStockItems': []
   };
 
-  String baseUrl =
-      'http://192.168.43.57:5000'; // Update this with your actual backend URL
+  String baseUrl = 'http://192.168.43.57:5000';
 
   @override
   void initState() {
     super.initState();
-    _fetchDashboardData();
+    _checkAuthAndFetchData();
+  }
+
+  Future<void> _checkAuthAndFetchData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AuthService.TOKEN_KEY);
+
+    if (token == null) {
+      _redirectToLogin();
+      return;
+    }
+
+    // Verify token validity
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/auth/token-debug'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await _fetchDashboardData();
+      } else {
+        _redirectToLogin();
+      }
+    } catch (e) {
+      _redirectToLogin();
+    }
+  }
+
+  void _redirectToLogin() {
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
   }
 
   Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = prefs.getString(AuthService.TOKEN_KEY);
 
       if (token == null) {
-        // For development, use mock data instead of redirecting to login
-        await Future.delayed(
-            const Duration(seconds: 1)); // Simulate network delay
-        setState(() {
-          _dashboardData = {
-            'totalProducts': 86,
-            'totalOrders': 12,
-            'totalUsers': 45,
-            'todaysRevenue': 230000,
-          
-              
-            'lowStockItems': [
-              {
-                'name': 'Panadol',
-                'currentStock': 5,
-              },
-              {
-                'name': 'Amoxicillin',
-                'currentStock': 3,
-              }
-            ]
-          };
-          _isLoading = false;
-        });
+        _redirectToLogin();
         return;
-
-     
       }
 
-      // Fetch dashboard summary data
       final response = await http.get(
         Uri.parse('$baseUrl/api/admin/dashboard'),
         headers: {
@@ -93,50 +104,37 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         final data = json.decode(response.body);
         setState(() {
           _dashboardData = data;
           _isLoading = false;
         });
+      } else if (response.statusCode == 401) {
+        _redirectToLogin();
       } else {
-        // Handle error based on status code
-        if (response.statusCode == 401) {
-          // Token expired, redirect to login
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('Session expired. Please log in again.')));
-
-            Navigator.pushNamedAndRemoveUntil(
-                context, '/login', (route) => false);
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                    'Failed to load dashboard data: ${response.reasonPhrase}')));
-
-            // Set loading to false but use default values
-            setState(() {
-              _isLoading = false;
-            });
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+              content: Text(
+                  'Failed to load dashboard data: ${response.reasonPhrase}')),
         );
-
-        // Set loading to false but use default values
         setState(() {
           _isLoading = false;
         });
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error loading dashboard data: ${e.toString()}')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
- 
   List<Widget> _buildLowStockItems() {
     final items = _dashboardData['lowStockItems'] as List? ?? [];
     final widgets = <Widget>[];
@@ -577,7 +575,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                       const SizedBox(height: 24),
 
-                   
                       const SizedBox(height: 24),
 
                       // Low Stock Items section
@@ -817,62 +814,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: Colors.grey[400],
-          ),
-        ],
       ),
     );
   }
