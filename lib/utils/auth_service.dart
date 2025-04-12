@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
 class AuthService {
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
   // Base URL for the Flask backend API
   // For Android emulator, use 10.0.2.2
   // For physical device on same network, use your computer's IP address
@@ -206,6 +211,7 @@ class AuthService {
         return {
           'success': true,
           'data': responseData,
+          'token': responseData['token'],
         };
       } else {
         return {
@@ -360,6 +366,7 @@ class AuthService {
         return {
           'success': true,
           'data': responseData,
+          'token': responseData['token'],
         };
       } else {
         return {

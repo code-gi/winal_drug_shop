@@ -10,4 +10,4 @@ marshmallow==3.20.1
 pytest==7.4.2
 pytest-flask==1.2.0
 gunicorn==21.2.0
-psycopg2-binary==2.9.7  # For PostgreSQL support
+# psycopg2-binary==2.9.7  # For PostgreSQL support
