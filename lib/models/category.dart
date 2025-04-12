@@ -4,7 +4,7 @@ class Category {
   final String description;
   final String type; // 'human' or 'animal'
   final int medicationCount;
-  final String? imageUrl; // Added imageUrl property
+  final String? imageUrl;
 
   Category({
     required this.id,
@@ -15,31 +15,28 @@ class Category {
     this.imageUrl,
   });
 
-  // Create a category from JSON data
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       description: json['description'] ?? '',
-      type: json['type'] ?? 'human',
+      type: json['medication_type'] ?? json['type'] ?? 'human',
       medicationCount: json['medication_count'] ?? 0,
       imageUrl: json['image_url'],
     );
   }
 
-  // Convert category to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'description': description,
-      'type': type,
+      'medication_type': type,
       'medication_count': medicationCount,
       'image_url': imageUrl,
     };
   }
 
-  // Create a copy of this category with specified fields replaced
   Category copyWith({
     int? id,
     String? name,

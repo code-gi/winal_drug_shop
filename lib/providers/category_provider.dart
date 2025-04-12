@@ -9,11 +9,10 @@ class CategoryProvider extends ChangeNotifier {
   List<Category> _categories = [];
   bool _isLoading = false;
   String? _error;
-
   final List<String> _fallbackUrls = [
     'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
-    'http://localhost:5000', // Local development
-    'http://10.0.2.2:5000' // Android emulator to host loopback
+    'http://10.0.2.2:5000', // Android emulator to host loopback
+    'http://localhost:5000', // Local development - lowest priority since it rarely works on mobile
   ];
 
   Future<String?> _tryUrls(
@@ -142,17 +141,24 @@ class CategoryProvider extends ChangeNotifier {
 
       final result = await _tryUrls((baseUrl) async {
         final response = await http.put(
-          Uri.parse('$baseUrl/api/categories/${category.id}/'),
+          Uri.parse('$baseUrl/api/categories/${category.id}'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
           body: json.encode(category.toJson()),
         );
-
         if (response.statusCode == 200) {
           return 'success';
         }
+        if (response.statusCode == 403) {
+          throw Exception('Admin access required');
+        }
+        if (response.statusCode == 404) {
+          throw Exception('Category not found');
+        }
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to update category');
         return null;
       });
 
@@ -178,17 +184,27 @@ class CategoryProvider extends ChangeNotifier {
 
       final result = await _tryUrls((baseUrl) async {
         final response = await http.delete(
-          Uri.parse('$baseUrl/api/categories/$id/'),
+          Uri.parse('$baseUrl/api/categories/$id'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
         );
-
-        if (response.statusCode == 204) {
+        if (response.statusCode == 200 || response.statusCode == 204) {
           return 'success';
         }
-        return null;
+        if (response.statusCode == 403) {
+          throw Exception('Admin access required');
+        }
+        if (response.statusCode == 404) {
+          throw Exception('Category not found');
+        }
+        if (response.statusCode == 400) {
+          final error = json.decode(response.body);
+          throw Exception(
+              error['message'] ?? 'Cannot delete category with medications');
+        }
+        throw Exception('Failed to delete category');
       });
 
       if (result == null) {
