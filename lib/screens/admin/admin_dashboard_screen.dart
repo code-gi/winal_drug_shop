@@ -90,11 +90,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(AuthService.TOKEN_KEY);
 
+      print('Fetching dashboard data...');
+      print('Token available: ${token != null}');
+
       if (token == null) {
+        print('No token found, redirecting to login');
         _redirectToLogin();
         return;
       }
 
+      print('Making API request to: $baseUrl/api/admin/dashboard');
       final response = await http.get(
         Uri.parse('$baseUrl/api/admin/dashboard'),
         headers: {
@@ -103,16 +108,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         },
       );
 
+      print('API Response Status Code: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
+
       if (response.statusCode == 200) {
         if (!mounted) return;
         final data = json.decode(response.body);
+        print('Dashboard data received: $data');
         setState(() {
           _dashboardData = data;
           _isLoading = false;
         });
       } else if (response.statusCode == 401) {
+        print('Unauthorized access, redirecting to login');
         _redirectToLogin();
       } else {
+        print('Error fetching dashboard data: ${response.reasonPhrase}');
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -124,6 +135,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         });
       }
     } catch (e) {
+      print('Exception while fetching dashboard data: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

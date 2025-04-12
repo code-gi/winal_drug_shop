@@ -31,6 +31,7 @@ class Order(db.Model):
             'shipping_address': self.shipping_address,
             'status': self.status,
             'order_date': self.order_date.isoformat(),
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'items': [item.to_dict() for item in self.items]
         }
 
