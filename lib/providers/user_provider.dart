@@ -10,6 +10,14 @@ class UserProvider extends ChangeNotifier {
   String? _error;
   bool _usedCachedData = false;
 
+  // Fallback URLs
+  final List<String> _fallbackUrls = [
+    'http://192.168.43.57:5000',
+    'http://10.0.2.2:5000',
+    'http://localhost:5000',
+    'https://winal-api.onrender.com'
+  ];
+
   // Get token from SharedPreferences
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -54,7 +62,46 @@ class UserProvider extends ChangeNotifier {
     return null;
   }
 
-  // Load users from API
+  // Generate mock users for development purposes
+  List<User> _generateMockUsers() {
+    return [
+      User(
+        id: 1,
+        email: 'admin@example.com',
+        name: 'Admin User',
+        role: 'admin',
+        createdAt: DateTime.now().subtract(const Duration(days: 30)),
+        phone: '+123456789',
+        address: '123 Admin St',
+        isActive: true,
+        orderCount: 5,
+      ),
+      User(
+        id: 2,
+        email: 'customer@example.com',
+        name: 'Example Customer',
+        role: 'customer',
+        createdAt: DateTime.now().subtract(const Duration(days: 15)),
+        phone: '+987654321',
+        address: '456 Customer Ave',
+        isActive: true,
+        orderCount: 3,
+      ),
+      User(
+        id: 3,
+        email: 'inactive@example.com',
+        name: 'Inactive User',
+        role: 'customer',
+        createdAt: DateTime.now().subtract(const Duration(days: 45)),
+        phone: '+111222333',
+        address: '789 Inactive Blvd',
+        isActive: false,
+        orderCount: 1,
+      ),
+    ];
+  }
+
+  // Load users from API with improved error handling
   Future<void> loadUsers({String? role}) async {
     _isLoading = true;
     _error = null;
@@ -78,79 +125,105 @@ class UserProvider extends ChangeNotifier {
         notifyListeners();
       }
 
-      // Base URL - should match your auth service
-      String baseUrl = 'http://192.168.43.57:5000';
-
-      // Alternative server URLs to try if the primary one fails
-      List<String> fallbackUrls = [
-        'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
-        'http://localhost:5000', // Local development
-        'http://10.0.2.2:5000', // Android emulator to host loopback
-        'https://winal-api.onrender.com' // Add your production URL if available
-      ];
-
-      // Build query parameters
-      Map<String, String> queryParams = {};
-      if (role != null && role.isNotEmpty) {
-        queryParams['role'] = role;
-      }
-
       bool success = false;
 
-      for (String url in fallbackUrls) {
+      for (String url in _fallbackUrls) {
         if (success) break;
 
         try {
           print('🔄 Attempting to fetch users from: $url');
 
-          final uri = Uri.parse('$url/api/users/')
-              .replace(queryParameters: queryParams);
-
-          final response = await http.get(
-            uri,
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          ).timeout(const Duration(seconds: 10));
-
-          print('📡 Users response: ${response.statusCode}');
-
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-
-            if (data['users'] != null) {
-              _users = (data['users'] as List)
-                  .map((item) => User.fromJson(item))
-                  .toList();
-
-              print('✅ Successfully loaded ${_users.length} users');
-
-              // Cache the successful response
-              await _cacheUsersData(_users);
-
-              _error = null;
-              _usedCachedData = false;
-              success = true;
-              // Don't notify here, wait until the end
-            } else {
-              print('❌ Users data is null or malformed');
-              // Continue to next server
-            }
-          } else {
-            print('❌ Failed to load users: ${response.statusCode}');
-            // Continue to next server
+          // Build query parameters
+          Map<String, String> queryParams = {};
+          if (role != null && role.isNotEmpty) {
+            queryParams['role'] = role;
           }
+
+          // Try different API endpoints - the correct one might be one of these
+          final endpoints = [
+            '/api/users/', // Original endpoint (404 error)
+            '/api/admin/users/', // Try admin users endpoint
+            '/api/admin/users', // Without trailing slash
+            '/api/users', // Without trailing slash
+            '/api/user/all/', // Alternative endpoint format
+            '/api/users/list/' // Another alternative
+          ];
+
+          for (String endpoint in endpoints) {
+            try {
+              final uri = Uri.parse(url + endpoint)
+                  .replace(queryParameters: queryParams);
+
+              final response = await http.get(
+                uri,
+                headers: {
+                  'Authorization': 'Bearer $token',
+                  'Content-Type': 'application/json',
+                },
+              ).timeout(const Duration(
+                  seconds: 5)); // Use a shorter timeout for multiple attempts
+
+              print('📡 Trying $endpoint - Response: ${response.statusCode}');
+
+              if (response.statusCode == 200) {
+                try {
+                  final responseData = json.decode(response.body);
+                  List<dynamic> usersList;
+
+                  // Fix the type error by correctly handling different response formats
+                  if (responseData is Map<String, dynamic>) {
+                    if (responseData['users'] != null &&
+                        responseData['users'] is List) {
+                      usersList = responseData['users'];
+                    } else if (responseData['data'] != null &&
+                        responseData['data'] is List) {
+                      usersList = responseData['data'];
+                    } else {
+                      print('❌ No users list found in response: $responseData');
+                      continue;
+                    }
+                  } else if (responseData is List) {
+                    usersList = responseData;
+                  } else {
+                    print('❌ Unexpected response format: $responseData');
+                    continue;
+                  }
+
+                  _users =
+                      usersList.map((item) => User.fromJson(item)).toList();
+
+                  print('✅ Successfully loaded ${_users.length} users');
+
+                  // Cache the successful response
+                  await _cacheUsersData(_users);
+
+                  _error = null;
+                  _usedCachedData = false;
+                  success = true;
+                  break; // Break the endpoint loop
+                } catch (e) {
+                  print('❌ Error parsing response: $e');
+                  continue;
+                }
+              }
+            } catch (e) {
+              print('❌ Error with endpoint $endpoint: $e');
+              continue;
+            }
+          }
+
+          if (success) break; // Break the URL loop if successful
         } catch (e) {
           print('❌ Error connecting to $url: $e');
-          // Continue to next server
         }
       }
 
+      // If all attempts failed and we don't have cached data, use mock data for development
       if (!success && !_usedCachedData) {
-        // If all servers failed and we don't have cached data
-        _error =
-            'Failed to connect to server. Please check your internet connection.';
+        print(
+            '⚠️ Using mock user data since we could not connect to any backend');
+        _users = _generateMockUsers();
+        _error = 'Could not connect to server. Using sample data.';
       }
     } catch (e) {
       print('❌ Error in loadUsers: $e');

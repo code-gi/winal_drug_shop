@@ -15,6 +15,9 @@ class CategoryProvider extends ChangeNotifier {
     'http://localhost:5000', // Local development - lowest priority since it rarely works on mobile
   ];
 
+  // Add a variable to track if we're using cached data
+  bool _usedCachedData = false;
+
   Future<String?> _tryUrls(
       Future<String?> Function(String baseUrl) apiCall) async {
     String? result;
@@ -38,15 +41,54 @@ class CategoryProvider extends ChangeNotifier {
     return prefs.getString('auth_token');
   }
 
+  // Cache categories data in SharedPreferences
+  Future<void> _cacheCategoriesData() async {
+    try {
+      if (_categories.isEmpty) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final categoriesJson =
+          _categories.map((category) => category.toJson()).toList();
+      await prefs.setString('cached_categories', json.encode(categoriesJson));
+      await prefs.setInt(
+          'categories_cache_time', DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      print('❌ Error caching categories data: $e');
+    }
+  }
+
+  // Load cached categories data
+  Future<List<Category>?> _loadCachedCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString('cached_categories');
+      final cacheTime = prefs.getInt('categories_cache_time') ?? 0;
+
+      // Check if cache is not too old (less than 1 hour)
+      final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTime;
+      if (cachedData != null && cacheAge < 3600000) {
+        final List<dynamic> categoriesJson = json.decode(cachedData);
+        return categoriesJson.map((data) => Category.fromJson(data)).toList();
+      }
+    } catch (e) {
+      print('❌ Error loading cached categories: $e');
+    }
+    return null;
+  }
+
   // Getters
   List<Category> get categories => _categories;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get usedCachedData => _usedCachedData;
 
-  // Load categories from API
+  // Load categories from API with improved error handling
   Future<void> loadCategories([String? type]) async {
     _isLoading = true;
     _error = null;
+    _usedCachedData = false;
+
+    // Important: Only notify once at the beginning
     notifyListeners();
 
     try {
@@ -58,6 +100,17 @@ class CategoryProvider extends ChangeNotifier {
         return;
       }
 
+      // Try to load cached categories first for immediate display
+      final cachedCategories = await _loadCachedCategories();
+      if (cachedCategories != null && cachedCategories.isNotEmpty) {
+        _categories = type != null
+            ? cachedCategories.where((c) => c.type == type).toList()
+            : cachedCategories;
+        _usedCachedData = true;
+        _isLoading = false;
+        notifyListeners();
+      }
+
       final result = await _tryUrls((baseUrl) async {
         // Build query parameters
         Map<String, String> queryParams = {};
@@ -67,30 +120,36 @@ class CategoryProvider extends ChangeNotifier {
 
         final Uri uri = Uri.parse('$baseUrl/api/categories/')
             .replace(queryParameters: queryParams);
+
+        // Add timeout to avoid waiting too long
         final response = await http.get(
           uri,
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
-        );
+        ).timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
           print('📡 Categories response: ${response.statusCode}');
           final List<dynamic> data = json.decode(response.body);
           _categories = data.map((item) => Category.fromJson(item)).toList();
+
+          // Cache the successful response
+          _cacheCategoriesData();
           return 'success';
         }
         return null;
       });
 
-      if (result == null) {
+      if (result == null && !_usedCachedData) {
         _error = 'Failed to load categories from all available servers';
       }
     } catch (e) {
       _error = e.toString();
     } finally {
       _isLoading = false;
+      // Notify once at the end to avoid multiple rebuilds
       notifyListeners();
     }
   }

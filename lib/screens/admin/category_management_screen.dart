@@ -18,12 +18,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   bool _isInitialized = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isInitialized) {
-      _isInitialized = true;
+  void initState() {
+    super.initState();
+    // Schedule the loading after the first frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCategories();
-    }
+    });
   }
 
   Future<void> _loadCategories() async {
@@ -38,11 +38,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           .loadCategories(_categoryType);
     } catch (e) {
       if (mounted) {
-        // Schedule the SnackBar to show after the build phase
+        // Use a PostFrameCallback to show error messages
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Error loading categories: ${e.toString()}')),
+            SnackBar(content: Text('Error: ${e.toString()}')),
           );
         });
       }
