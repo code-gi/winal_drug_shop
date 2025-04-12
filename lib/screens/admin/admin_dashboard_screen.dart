@@ -80,13 +80,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         });
         return;
 
-        /* To restore login redirect in production, uncomment this:
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-              context, '/login', (route) => false);
-        }
-        return;
-        */
+     
       }
 
       // Fetch dashboard summary data
