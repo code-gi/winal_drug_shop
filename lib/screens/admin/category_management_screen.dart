@@ -15,29 +15,42 @@ class CategoryManagementScreen extends StatefulWidget {
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   String _categoryType = 'human'; // Default to human categories
   bool _isLoading = false;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    // Schedule the loading after the first frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCategories();
+    });
   }
 
   Future<void> _loadCategories() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       await Provider.of<CategoryProvider>(context, listen: false)
-          .loadCategories(type: _categoryType);
+          .loadCategories(_categoryType);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading categories: ${e.toString()}')),
-      );
+      if (mounted) {
+        // Use a PostFrameCallback to show error messages
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -80,20 +93,26 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   Future<void> _deleteCategory(int id) async {
     try {
-      final result = await Provider.of<CategoryProvider>(context, listen: false)
-          .deleteCategory(id);
+      await Provider.of<CategoryProvider>(context, listen: false)
+          .deleteCategory(id.toString());
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
-
-      if (result['success']) {
-        await _loadCategories(); // Reload the list
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Category deleted successfully')),
+          );
+        });
       }
+
+      await _loadCategories(); // Reload the list
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        });
+      }
     }
   }
 

@@ -20,29 +20,25 @@ class _AdminMedicationListScreenState extends State<AdminMedicationListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMedications();
-  }
-
-  Future<void> _loadMedications() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await Provider.of<MedicationProvider>(context, listen: false)
-          .loadMedications(
+    // Use Future.microtask without setState to avoid build-time state changes
+    Future.microtask(() {
+      if (!mounted) return;
+      final provider = Provider.of<MedicationProvider>(context, listen: false);
+      provider.loadMedications(
         medicationType: _medicationType,
         searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading medications: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    });
+  }
+
+  Future<void> _loadMedications() async {
+    if (!mounted) return;
+
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    await provider.loadMedications(
+      medicationType: _medicationType,
+      searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+    );
   }
 
   void _showDeleteConfirmation(Medication medication) {

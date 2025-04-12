@@ -91,23 +91,27 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> {
       final description = _descriptionController.text.trim();
 
       Map<String, dynamic> result;
-
       if (isEditMode) {
         // Update existing category
-        result = await provider.updateCategory(
-          widget.category!.id,
-          name: name,
-          description: description,
-          imageFile: _isImageChanged ? _imageFile : null,
+        await provider.updateCategory(
+          widget.category!.copyWith(
+            name: name,
+            description: description,
+          ),
         );
+        result = {'success': true, 'message': 'Category updated successfully'};
       } else {
         // Create new category
-        result = await provider.addCategory(
-          name: name,
-          description: description,
-          imageFile: _imageFile,
-          type: widget.categoryType,
+        await provider.addCategory(
+          Category(
+            id: 0, // temporary ID, will be replaced by server
+            name: name,
+            description: description,
+            type: widget.categoryType,
+            imageUrl: null, // will be set by server
+          ),
         );
+        result = {'success': true, 'message': 'Category created successfully'};
       }
 
       if (mounted) {

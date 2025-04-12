@@ -4,7 +4,6 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, get_jwt
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-import logging
 from datetime import datetime, timezone
 
 from .config import config
@@ -18,8 +17,10 @@ bcrypt = Bcrypt()
 
 def create_app(config_name='default'):
     """Application factory function"""
+    print("\n=== Creating Flask Application ===")
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+    print(f"Initialized with config: {config_name}")
     
     # Initialize extensions with app
     db.init_app(app)
@@ -27,38 +28,69 @@ def create_app(config_name='default'):
     jwt.init_app(app)
     bcrypt.init_app(app)
     CORS(app, supports_credentials=True)
-    
+    print("All extensions initialized")
+
     # Set up request logging
     @app.before_request
     def log_request():
-        app.logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
+        print(f"\n=== Incoming Request ===")
+        print(f"Request: {request.method} {request.path} from {request.remote_addr}")
         if request.headers.get('Authorization'):
             auth_header = request.headers.get('Authorization')
-            app.logger.info(f"Auth header: {auth_header[:15]}...")
+            print(f"Auth header: {auth_header[:15]}...")
     
     @app.after_request
     def log_response(response):
-        app.logger.info(f"Response: {response.status_code}")
+        print(f"Response status: {response.status_code}")
         return response
-    
+
     # Import and register blueprints
-    from .routes.auth import auth_bp
-    from .routes.users import users_bp
-    from .routes.medications import medications_bp
-    from .routes.categories import categories_bp
-    from .routes.seed import seed_bp
-    from .routes.orders import orders_bp
-    from .routes.farm_activities import bp as farm_activities_bp
-    from .routes.appointments import bp as appointments_bp
+    print("\n=== Registering Blueprints ===")
     
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(farm_activities_bp, url_prefix='/api')
-    app.register_blueprint(users_bp, url_prefix='/api/users')
-    app.register_blueprint(medications_bp, url_prefix='/api/medications')
-    app.register_blueprint(categories_bp, url_prefix='/api/categories')
-    app.register_blueprint(seed_bp, url_prefix='/api/seed')
-    app.register_blueprint(orders_bp, url_prefix='/api/orders')
-    app.register_blueprint(appointments_bp, url_prefix='/api')
+    try:
+        print("Importing blueprints...")
+        from .routes.auth import auth_bp
+        from .routes.users import users_bp
+        from .routes.medications import medications_bp
+        from .routes.categories import categories_bp
+        from .routes.seed import seed_bp
+        from .routes.orders import orders_bp
+        from .routes.farm_activities import bp as farm_activities_bp
+        from .routes.appointments import bp as appointments_bp
+        from .routes.admin import admin_bp
+        
+        print("All blueprints imported successfully")
+        
+        # Register each blueprint and log it
+        blueprints = [
+            (auth_bp, '/api/auth'),
+            (farm_activities_bp, '/api'),
+            (users_bp, '/api/users'),
+            (medications_bp, '/api/medications'),
+            (categories_bp, '/api/categories'),
+            (seed_bp, '/api/seed'),
+            (orders_bp, '/api/orders'),
+            (appointments_bp, '/api'),
+            (admin_bp, '/api/admin')
+        ]
+        
+        for blueprint, url_prefix in blueprints:
+            print(f"Registering blueprint: {blueprint.name} with prefix: {url_prefix}")
+            app.register_blueprint(blueprint, url_prefix=url_prefix)
+            print(f"Successfully registered {blueprint.name}")
+            
+        print("All blueprints registered successfully")
+        
+        # Log all registered routes
+        print("\n=== Registered Routes ===")
+        for rule in app.url_map.iter_rules():
+            print(f"{rule.endpoint}: {rule.rule}")
+            
+    except Exception as e:
+        print(f"\nERROR during blueprint registration: {str(e)}")
+        print("Full traceback:")
+        import traceback
+        print(traceback.format_exc())
     
     # Create token blocklist table if it doesn't exist
     from .models.user import TokenBlocklist

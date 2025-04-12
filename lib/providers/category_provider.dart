@@ -9,6 +9,31 @@ class CategoryProvider extends ChangeNotifier {
   List<Category> _categories = [];
   bool _isLoading = false;
   String? _error;
+  final List<String> _fallbackUrls = [
+    'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
+    'http://10.0.2.2:5000', // Android emulator to host loopback
+    'http://localhost:5000', // Local development - lowest priority since it rarely works on mobile
+  ];
+
+  // Add a variable to track if we're using cached data
+  bool _usedCachedData = false;
+
+  Future<String?> _tryUrls(
+      Future<String?> Function(String baseUrl) apiCall) async {
+    String? result;
+    for (String url in _fallbackUrls) {
+      try {
+        result = await apiCall(url);
+        if (result != null) {
+          return result;
+        }
+      } catch (e) {
+        print('❌ Error connecting to $url: $e');
+        continue;
+      }
+    }
+    return null;
+  }
 
   // Get token from SharedPreferences
   Future<String?> _getToken() async {
@@ -16,15 +41,54 @@ class CategoryProvider extends ChangeNotifier {
     return prefs.getString('auth_token');
   }
 
+  // Cache categories data in SharedPreferences
+  Future<void> _cacheCategoriesData() async {
+    try {
+      if (_categories.isEmpty) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final categoriesJson =
+          _categories.map((category) => category.toJson()).toList();
+      await prefs.setString('cached_categories', json.encode(categoriesJson));
+      await prefs.setInt(
+          'categories_cache_time', DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      print('❌ Error caching categories data: $e');
+    }
+  }
+
+  // Load cached categories data
+  Future<List<Category>?> _loadCachedCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString('cached_categories');
+      final cacheTime = prefs.getInt('categories_cache_time') ?? 0;
+
+      // Check if cache is not too old (less than 1 hour)
+      final cacheAge = DateTime.now().millisecondsSinceEpoch - cacheTime;
+      if (cachedData != null && cacheAge < 3600000) {
+        final List<dynamic> categoriesJson = json.decode(cachedData);
+        return categoriesJson.map((data) => Category.fromJson(data)).toList();
+      }
+    } catch (e) {
+      print('❌ Error loading cached categories: $e');
+    }
+    return null;
+  }
+
   // Getters
   List<Category> get categories => _categories;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get usedCachedData => _usedCachedData;
 
-  // Load categories from API
-  Future<void> loadCategories({String? type}) async {
+  // Load categories from API with improved error handling
+  Future<void> loadCategories([String? type]) async {
     _isLoading = true;
     _error = null;
+    _usedCachedData = false;
+
+    // Important: Only notify once at the beginning
     notifyListeners();
 
     try {
@@ -36,247 +100,181 @@ class CategoryProvider extends ChangeNotifier {
         return;
       }
 
-      // Base URL - should match your auth service
-      String baseUrl = 'http://192.168.43.57:5000';
-
-      // Alternative server URLs to try if the primary one fails
-      List<String> fallbackUrls = [
-        'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
-        'http://localhost:5000', // Local development
-        'http://10.0.2.2:5000' // Android emulator to host loopback
-      ];
-
-      // Build query parameters
-      Map<String, String> queryParams = {};
-      if (type != null && type.isNotEmpty) {
-        queryParams['type'] = type;
+      // Try to load cached categories first for immediate display
+      final cachedCategories = await _loadCachedCategories();
+      if (cachedCategories != null && cachedCategories.isNotEmpty) {
+        _categories = type != null
+            ? cachedCategories.where((c) => c.type == type).toList()
+            : cachedCategories;
+        _usedCachedData = true;
+        _isLoading = false;
+        notifyListeners();
       }
 
-      for (String url in fallbackUrls) {
-        try {
-          print('🔄 Attempting to fetch categories from: $url');
-
-          final Uri uri = Uri.parse('$url/api/categories/')
-              .replace(queryParameters: queryParams);
-
-          final response = await http.get(
-            uri,
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
-          );
-
-          print('📡 Categories response: ${response.statusCode}');
-
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-
-            if (data['categories'] != null) {
-              _categories = (data['categories'] as List)
-                  .map((item) => Category.fromJson(item))
-                  .toList();
-
-              print('✅ Successfully loaded ${_categories.length} categories');
-              _isLoading = false;
-              _error = null;
-              notifyListeners();
-              return; // Success, exit the fallback loop
-            } else {
-              print('❌ Categories data is null or malformed');
-              // Continue to next server
-            }
-          } else {
-            print('❌ Failed to load categories: ${response.statusCode}');
-            // Continue to next server
-          }
-        } catch (e) {
-          print('❌ Error connecting to $url: ${e.toString()}');
-          // Continue to next server
+      final result = await _tryUrls((baseUrl) async {
+        // Build query parameters
+        Map<String, String> queryParams = {};
+        if (type != null && type.isNotEmpty) {
+          queryParams['type'] = type;
         }
-      }
 
-      // If we reach here, all servers failed
-      _error = 'Failed to connect to server';
+        final Uri uri = Uri.parse('$baseUrl/api/categories/')
+            .replace(queryParameters: queryParams);
+
+        // Add timeout to avoid waiting too long
+        final response = await http.get(
+          uri,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          print('📡 Categories response: ${response.statusCode}');
+          final List<dynamic> data = json.decode(response.body);
+          _categories = data.map((item) => Category.fromJson(item)).toList();
+
+          // Cache the successful response
+          _cacheCategoriesData();
+          return 'success';
+        }
+        return null;
+      });
+
+      if (result == null && !_usedCachedData) {
+        _error = 'Failed to load categories from all available servers';
+      }
     } catch (e) {
-      print('❌ Error in loadCategories: ${e.toString()}');
       _error = e.toString();
     } finally {
       _isLoading = false;
+      // Notify once at the end to avoid multiple rebuilds
       notifyListeners();
     }
   }
 
   // Add a new category
-  Future<Map<String, dynamic>> addCategory({
-    required String name,
-    required String description,
-    required File? imageFile,
-    String type = 'human',
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> addCategory(Category category) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return {'success': false, 'message': 'Not authenticated'};
+        throw Exception('Not authenticated');
       }
 
-      // Base URL - should match your auth service
-      String baseUrl = 'http://192.168.43.57:5000';
+      final result = await _tryUrls((baseUrl) async {
+        final response = await http.post(
+          Uri.parse('$baseUrl/api/categories/'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(category.toJson()),
+        );
 
-      // Create multipart request for handling file upload
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/api/categories/'),
-      );
-
-      // Add headers
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
+        if (response.statusCode == 201) {
+          return 'success';
+        }
+        return null;
       });
 
-      // Add text fields
-      request.fields['name'] = name;
-      request.fields['description'] = description;
-      request.fields['type'] = type;
-
-      // Add image file if it exists
-      if (imageFile != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'image',
-            imageFile.path,
-          ),
-        );
+      if (result == null) {
+        throw Exception('Failed to add category on all available servers');
       }
 
-      // Send the request
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      var parsedResponse = json.decode(responseData);
-
-      if (response.statusCode == 201) {
-        await loadCategories(); // Reload categories
-        return {'success': true, 'message': 'Category created successfully'};
-      } else {
-        return {
-          'success': false,
-          'message': parsedResponse['message'] ?? 'Failed to create category',
-        };
-      }
+      await loadCategories();
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    } finally {
-      _isLoading = false;
+      _error = e.toString();
       notifyListeners();
+      throw e;
     }
   }
 
   // Update an existing category
-  Future<Map<String, dynamic>> updateCategory(
-    int categoryId, {
-    required String name,
-    required String description,
-    File? imageFile,
-    String? type,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> updateCategory(Category category) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return {'success': false, 'message': 'Not authenticated'};
+        throw Exception('Not authenticated');
       }
 
-      String baseUrl = 'http://192.168.43.57:5000';
-
-      // Create multipart request for handling file upload
-      var request = http.MultipartRequest(
-        'PUT',
-        Uri.parse('$baseUrl/api/categories/$categoryId/'),
-      );
-
-      // Add headers
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
+      final result = await _tryUrls((baseUrl) async {
+        final response = await http.put(
+          Uri.parse('$baseUrl/api/categories/${category.id}'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(category.toJson()),
+        );
+        if (response.statusCode == 200) {
+          return 'success';
+        }
+        if (response.statusCode == 403) {
+          throw Exception('Admin access required');
+        }
+        if (response.statusCode == 404) {
+          throw Exception('Category not found');
+        }
+        final error = json.decode(response.body);
+        throw Exception(error['message'] ?? 'Failed to update category');
+        return null;
       });
 
-      // Add text fields
-      request.fields['name'] = name;
-      request.fields['description'] = description;
-      if (type != null) {
-        request.fields['type'] = type;
+      if (result == null) {
+        throw Exception('Failed to update category on all available servers');
       }
 
-      // Add image file if it has changed
-      if (imageFile != null) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'image',
-            imageFile.path,
-          ),
-        );
-      }
-
-      // Send the request
-      var response = await request.send();
-      var responseData = await response.stream.bytesToString();
-      var parsedResponse = json.decode(responseData);
-
-      if (response.statusCode == 200) {
-        await loadCategories(); // Reload categories
-        return {'success': true, 'message': 'Category updated successfully'};
-      } else {
-        return {
-          'success': false,
-          'message': parsedResponse['message'] ?? 'Failed to update category',
-        };
-      }
+      await loadCategories();
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    } finally {
-      _isLoading = false;
+      _error = e.toString();
       notifyListeners();
+      throw e;
     }
   }
 
   // Delete a category
-  Future<Map<String, dynamic>> deleteCategory(int id) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> deleteCategory(String id) async {
     try {
       final token = await _getToken();
       if (token == null) {
-        return {'success': false, 'message': 'Not authenticated'};
+        throw Exception('Not authenticated');
       }
 
-      final baseUrl = 'http://192.168.43.57:5000';
-      final response = await http.delete(
-        Uri.parse('$baseUrl/api/categories/$id/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final result = await _tryUrls((baseUrl) async {
+        final response = await http.delete(
+          Uri.parse('$baseUrl/api/categories/$id'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          return 'success';
+        }
+        if (response.statusCode == 403) {
+          throw Exception('Admin access required');
+        }
+        if (response.statusCode == 404) {
+          throw Exception('Category not found');
+        }
+        if (response.statusCode == 400) {
+          final error = json.decode(response.body);
+          throw Exception(
+              error['message'] ?? 'Cannot delete category with medications');
+        }
+        throw Exception('Failed to delete category');
+      });
 
-      if (response.statusCode == 200) {
-        await loadCategories(); // Reload categories
-        return {'success': true, 'message': 'Category deleted successfully'};
-      } else {
-        final responseData = json.decode(response.body);
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Failed to delete category',
-        };
+      if (result == null) {
+        throw Exception('Failed to delete category on all available servers');
       }
+
+      await loadCategories();
     } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    } finally {
-      _isLoading = false;
+      _error = e.toString();
       notifyListeners();
+      throw e;
     }
   }
 

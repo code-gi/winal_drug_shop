@@ -4,7 +4,7 @@ class Medication {
   final String description;
   final double price;
   final int stock;
-  final String type; // 'human' or 'animal'
+  final String type;
   final String category;
   final String? imageUrl;
 
@@ -19,23 +19,21 @@ class Medication {
     this.imageUrl,
   });
 
-  // Create Medication object from JSON data
   factory Medication.fromJson(Map<String, dynamic> json) {
     return Medication(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      price: json['price'] is int
+      id: json['id'] as int,
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      price: (json['price'] is int)
           ? (json['price'] as int).toDouble()
-          : json['price'],
-      stock: json['stock'] ?? json['stock_quantity'] ?? 0,
-      type: json['type'],
-      category: json['category'] ?? json['category_name'] ?? 'Other',
-      imageUrl: json['imageUrl'] ?? json['image_url'],
+          : (json['price'] as num?)?.toDouble() ?? 0.0,
+      stock: (json['stock'] ?? json['stock_quantity'] ?? 0) as int,
+      type: json['medication_type'] ?? json['type'] ?? 'human',
+      category: json['category_name'] ?? json['category'] ?? 'Other',
+      imageUrl: json['image_url'] ?? json['imageUrl'] as String?,
     );
   }
 
-  // Convert Medication object to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -49,7 +47,6 @@ class Medication {
     };
   }
 
-  // Create a copy of the Medication with updated fields
   Medication copyWith({
     int? id,
     String? name,

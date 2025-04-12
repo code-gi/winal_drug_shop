@@ -36,31 +36,14 @@ class MedicationProvider extends ChangeNotifier {
 
   // Load medications with optional filters
   Future<void> loadMedications({
+    bool resetPage = true,
+    String? searchQuery,
     String? medicationType,
     int? categoryId,
-    String? searchQuery,
-    bool resetPage = true,
   }) async {
-    // If we're loading a new set of medications, reset the page
     if (resetPage) {
       _currentPage = 1;
       _hasMorePages = true;
-
-      // If we're changing filters, update the state variables
-      if (medicationType != null) {
-        _currentMedicationType = medicationType;
-      }
-
-      if (categoryId != null ||
-          categoryId == null && _currentCategoryId != null) {
-        _currentCategoryId = categoryId;
-      }
-
-      if (searchQuery != null || searchQuery == '') {
-        _currentSearchQuery = searchQuery;
-      }
-
-      // Clear the current medications if we're loading a new set
       _medications = [];
     }
 
@@ -71,53 +54,36 @@ class MedicationProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      print(
-          '🔍 LOADING MEDICATIONS: Type: $_currentMedicationType, Category: $_currentCategoryId, Page: $_currentPage');
-
       final result = await _medicationService.getMedications(
-        medicationType: _currentMedicationType,
-        categoryId: _currentCategoryId,
-        searchQuery: _currentSearchQuery,
+        medicationType: medicationType ?? _currentMedicationType,
+        categoryId: categoryId ?? _currentCategoryId,
+        searchQuery: searchQuery ?? _currentSearchQuery,
         page: _currentPage,
         pageSize: 10,
       );
 
-      print(
-          '📦 RESULT: ${result.toString().substring(0, result.toString().length > 300 ? 300 : result.toString().length)}...');
-      print(
-          '📝 MEDICATIONS COUNT IN RESPONSE: ${result['medications'].length}');
-
       final newMedications =
-          List<Map<String, dynamic>>.from(result['medications']);
-
+          List<Map<String, dynamic>>.from(result['medications'] ?? []);
       print('🆕 NEW MEDICATIONS: ${newMedications.length}');
+
       if (newMedications.isNotEmpty) {
         print('📋 FIRST MEDICATION: ${newMedications[0]}');
       }
 
-      if (resetPage) {
-        _medications = newMedications;
-      } else {
-        _medications.addAll(newMedications);
-      }
-
-      // Check if there are more pages
-      final totalItems = result['total'] as int;
-      final currentCount = _medications.length;
-      _hasMorePages = currentCount < totalItems;
+      _medications.addAll(newMedications);
+      _currentPage++;
+      _hasMorePages = newMedications.length >= 10;
+      _currentMedicationType = medicationType ?? _currentMedicationType;
+      _currentCategoryId = categoryId;
+      _currentSearchQuery = searchQuery;
 
       print(
-          '📊 TOTALS: Items=${totalItems}, Current Count=${currentCount}, Has More=${_hasMorePages}');
-
-      // Increment the page for the next load
-      if (_hasMorePages) {
-        _currentPage++;
-      }
+          '📊 TOTALS: Items=${_medications.length}, Current Count=${newMedications.length}, Has More=$_hasMorePages');
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      print('❌ ERROR LOADING MEDICATIONS: ${e.toString()}');
+      print('❌ Error loading medications: $e');
       _isLoading = false;
       _errorMessage = e.toString();
       notifyListeners();
@@ -150,12 +116,13 @@ class MedicationProvider extends ChangeNotifier {
       notifyListeners();
 
       final result = await _medicationService.getCategories(
-        medicationType: medicationType,
+        medicationType: medicationType ?? _currentMedicationType,
       );
 
-      _categories = result;
+      _categories = List<Map<String, dynamic>>.from(result ?? []);
       notifyListeners();
     } catch (e) {
+      print('❌ Error loading categories: $e');
       _errorMessage = e.toString();
       notifyListeners();
     }

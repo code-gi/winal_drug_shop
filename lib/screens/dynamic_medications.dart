@@ -32,16 +32,15 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
   @override
   void initState() {
     super.initState();
-
     print(
         '==== DynamicMedicationsScreen initialized for ${widget.medicationType} ====');
 
-    // Load medications and categories on init based on the medication type
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Load medications and categories after the widget is built
+    Future.microtask(() {
+      if (!mounted) return;
       print('Loading medications and categories for ${widget.medicationType}');
       final medicationProvider =
           Provider.of<MedicationProvider>(context, listen: false);
-
       medicationProvider.loadMedications(medicationType: widget.medicationType);
       medicationProvider.loadCategories(medicationType: widget.medicationType);
     });
@@ -50,6 +49,7 @@ class _DynamicMedicationsScreenState extends State<DynamicMedicationsScreen> {
     _scrollController.addListener(() {
       if (_scrollController.position.pixels ==
           _scrollController.position.maxScrollExtent) {
+        if (!mounted) return;
         final medicationProvider =
             Provider.of<MedicationProvider>(context, listen: false);
         if (!medicationProvider.isLoading && medicationProvider.hasMorePages) {
