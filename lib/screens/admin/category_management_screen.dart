@@ -35,12 +35,16 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
     try {
       await Provider.of<CategoryProvider>(context, listen: false)
-          .loadCategories(type: _categoryType);
+          .loadCategories(_categoryType);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading categories: ${e.toString()}')),
-        );
+        // Schedule the SnackBar to show after the build phase
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Error loading categories: ${e.toString()}')),
+          );
+        });
       }
     } finally {
       if (mounted) {
@@ -90,20 +94,26 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   Future<void> _deleteCategory(int id) async {
     try {
-      final result = await Provider.of<CategoryProvider>(context, listen: false)
-          .deleteCategory(id);
+      await Provider.of<CategoryProvider>(context, listen: false)
+          .deleteCategory(id.toString());
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'])),
-      );
-
-      if (result['success']) {
-        await _loadCategories(); // Reload the list
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Category deleted successfully')),
+          );
+        });
       }
+
+      await _loadCategories(); // Reload the list
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString()}')),
+          );
+        });
+      }
     }
   }
 
