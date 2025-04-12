@@ -89,15 +89,21 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
     return _appointments.where((appointment) {
       final appointmentDateTime = _parseDateTime(
           appointment.appointmentDate, appointment.appointmentTime);
+      final status = appointment.status.toLowerCase();
+      final isPastOrPresent = appointmentDateTime.isBefore(now) || appointmentDateTime.isAtSameMomentAs(now);
+      final isCompletedOrCancelled = status == 'completed' || status == 'cancelled';
 
       if (_showUpcoming) {
-        return appointmentDateTime.isAfter(now) ||
-            appointment.status.toLowerCase() == 'pending' ||
-            appointment.status.toLowerCase() == 'confirmed';
+        // Show in upcoming tab only if:
+        // 1. The appointment is in the future AND
+        // 2. The status is either pending or confirmed
+        return !isPastOrPresent && !isCompletedOrCancelled;
       } else {
-        return appointmentDateTime.isBefore(now) ||
-            appointment.status.toLowerCase() == 'completed' ||
-            appointment.status.toLowerCase() == 'cancelled';
+        // Show in past tab if:
+        // 1. The appointment is in the past/present OR
+        // 2. The status is completed or cancelled
+        return isPastOrPresent || isCompletedOrCancelled;
+            status == 'cancelled';
       }
     }).toList();
   }
@@ -237,9 +243,25 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                   ],
                 ),
               ),
-              bottom: TabBar(
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: _fetchAppointments,
+                  tooltip: 'Refresh appointments',
+                ),
+              ],
+            ),
+          ];
+        },
+        body: Column(
+          children: [
+            Container(
+              color: Colors.green,
+              child: TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
                 tabs: [
                   Tab(
                     icon: Icon(Icons.calendar_today),
@@ -251,19 +273,11 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                   ),
                 ],
               ),
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.refresh),
-                  onPressed: _fetchAppointments,
-                  tooltip: 'Refresh appointments',
-                ),
-              ],
             ),
-          ];
-        },
-        body: _isLoading
-            ? Center(child: CircularProgressIndicator())
-            : _errorMessage.isNotEmpty
+            Expanded(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _errorMessage.isNotEmpty
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -357,7 +371,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                           },
                         ),
                       ),
-      ),
+                    ),
+                  ],
+                ),
+              ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         child: Icon(Icons.add),

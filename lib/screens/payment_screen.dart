@@ -145,7 +145,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activity = widget.args['activity'] as FarmActivity;
+    final activity = FarmActivity.fromJson(widget.args['activity'] as Map<String, dynamic>);
     final appointment = widget.args['appointment'];
 
     return Scaffold(

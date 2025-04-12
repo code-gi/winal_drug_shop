@@ -49,6 +49,7 @@ def create_app(config_name='default'):
     from .routes.seed import seed_bp
     from .routes.orders import orders_bp
     from .routes.farm_activities import bp as farm_activities_bp
+    from .routes.appointments import bp as appointments_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(farm_activities_bp, url_prefix='/api')
@@ -57,6 +58,7 @@ def create_app(config_name='default'):
     app.register_blueprint(categories_bp, url_prefix='/api/categories')
     app.register_blueprint(seed_bp, url_prefix='/api/seed')
     app.register_blueprint(orders_bp, url_prefix='/api/orders')
+    app.register_blueprint(appointments_bp, url_prefix='/api')
     
     # Create token blocklist table if it doesn't exist
     from .models.user import TokenBlocklist
