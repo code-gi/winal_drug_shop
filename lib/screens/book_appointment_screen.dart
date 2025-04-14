@@ -123,12 +123,17 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
 
       if (response.statusCode == 201) {
         final appointmentData = json.decode(response.body);
+        final appointmentId =
+            appointmentData['id']; // Extract appointment ID if available
+
         Navigator.pushNamed(
           context,
           '/payment',
           arguments: {
-            'appointment': appointmentData,
-            'activity': widget.activity,
+            'type': 'appointment',
+            'farmActivity': widget.activity,
+            'amount': widget.activity.price.toDouble(),
+            'appointmentId': appointmentId,
           },
         );
       } else {

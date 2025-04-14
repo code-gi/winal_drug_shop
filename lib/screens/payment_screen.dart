@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/farm_activity.dart';
-import 'package:provider/provider.dart';
-import '../utils/auth_service.dart';
-import 'dart:developer' as developer;
+import 'package:winal_front_end/models/farm_activity.dart';
 
 class PaymentScreen extends StatefulWidget {
   final Map<String, dynamic> args;
@@ -16,292 +11,243 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final _formKey = GlobalKey<FormState>();
-  bool isLoading = false;
-  String selectedPaymentMethod = 'mobile_money';
-  final TextEditingController _phoneController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    // Pre-populate phone number if available
-    _phoneController.text =
-        ''; // You could get this from user profile if stored
-  }
+  bool _isLoading = false;
+  String _selectedPaymentMethod = 'Mobile Money';
+  final _phoneNumberController = TextEditingController();
 
   @override
   void dispose() {
-    _phoneController.dispose();
+    _phoneNumberController.dispose();
     super.dispose();
-  }
-
-  Future<void> _processPayment() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // Get auth token using AuthService
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final token = await authService.getToken();
-
-      if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Session expired. Please login again')),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
-        return;
-      }
-
-      final appointmentId = widget.args['appointment']['id'];
-
-      // Debug prints
-      developer.log('Processing payment for appointment ID: $appointmentId');
-      developer.log('Payment method: $selectedPaymentMethod');
-      developer.log('Phone number: ${_phoneController.text}');
-
-      // Use the baseUrl from AuthService instead of hardcoded localhost
-      final response = await http.post(
-        Uri.parse(
-            '${authService.baseUrl}/api/appointments/$appointmentId/payment'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'payment_method': selectedPaymentMethod,
-          'phone_number': _phoneController.text,
-        }),
-      );
-
-      developer.log('Payment response status: ${response.statusCode}');
-      developer.log('Payment response body: ${response.body}');
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _showSuccessDialog();
-      } else {
-        String errorMessage = 'Payment failed';
-        try {
-          final responseData = json.decode(response.body);
-          errorMessage = responseData['message'] ?? 'Payment failed';
-        } catch (e) {
-          // If response body can't be decoded as JSON
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      }
-    } catch (e) {
-      developer.log('Payment error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Column(
-            children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 64,
-              ),
-              SizedBox(height: 16),
-              Text('Payment Successful!'),
-            ],
-          ),
-          content: const Text(
-            'Your appointment has been confirmed. You will receive a confirmation message shortly.',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst);
-              },
-              child: const Text('Done'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final activity = FarmActivity.fromJson(widget.args['activity'] as Map<String, dynamic>);
-    final appointment = widget.args['appointment'];
+    // Extract payment information from args
+    final paymentType = widget.args['type'] ?? 'order';
+    final double amount = widget.args['amount'] is double
+        ? widget.args['amount']
+        : (widget.args['amount'] is int
+            ? widget.args['amount'].toDouble()
+            : 0.0);
+
+    // Determine title and description based on payment type
+    String title = 'Payment';
+    String description = '';
+
+    if (paymentType == 'appointment') {
+      // Handle appointment payment
+      final farmActivity = widget.args['farmActivity'] as FarmActivity;
+      title = 'Appointment Payment';
+      description =
+          'Payment for ${farmActivity.name} (${farmActivity.price} UGX)';
+    } else {
+      // Handle order payment
+      final orderId = widget.args['orderId'] ?? '';
+      title = 'Order Payment';
+      description = 'Payment for Order #$orderId';
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payment'),
-        backgroundColor: Colors.green,
+        title: Text(title),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Order Summary',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Payment details card
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Payment Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      description,
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Amount:'),
+                        Text(
+                          '${amount.toStringAsFixed(0)} UGX',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            activity.name,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          Text(
-                            'UGX ${activity.price.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total Amount',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'UGX ${appointment['total_amount'].toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Payment Method',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      RadioListTile(
-                        title: Row(
-                          children: [
-                            Image.asset(
-                              'assets/images/AIRTEL-removebg-preview.png',
-                              height: 30,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text('Mobile Money'),
-                          ],
-                        ),
-                        value: 'mobile_money',
-                        groupValue: selectedPaymentMethod,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedPaymentMethod = value.toString();
-                          });
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: TextFormField(
-                          controller: _phoneController,
-                          decoration: InputDecoration(
-                            labelText: 'Phone Number',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            prefixText: '+256 ',
-                          ),
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your phone number';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Payment methods
+            const Text(
+              'Select Payment Method',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: isLoading ? null : _processPayment,
+            ),
+            const SizedBox(height: 12),
+
+            // Mobile Money option
+            RadioListTile<String>(
+              title: const Text('Mobile Money'),
+              value: 'Mobile Money',
+              groupValue: _selectedPaymentMethod,
+              onChanged: (value) {
+                setState(() {
+                  _selectedPaymentMethod = value!;
+                });
+              },
+              activeColor: Colors.blue,
+            ),
+
+            // Credit/Debit Card option
+            RadioListTile<String>(
+              title: const Text('Credit/Debit Card'),
+              value: 'Credit/Debit Card',
+              groupValue: _selectedPaymentMethod,
+              onChanged: (value) {
+                setState(() {
+                  _selectedPaymentMethod = value!;
+                });
+              },
+              activeColor: Colors.blue,
+            ),
+
+            // Cash option
+            RadioListTile<String>(
+              title: const Text('Cash on Delivery/Service'),
+              value: 'Cash',
+              groupValue: _selectedPaymentMethod,
+              onChanged: (value) {
+                setState(() {
+                  _selectedPaymentMethod = value!;
+                });
+              },
+              activeColor: Colors.blue,
+            ),
+
+            const SizedBox(height: 24),
+
+            // Payment form based on selected method
+            if (_selectedPaymentMethod == 'Mobile Money') ...[
+              TextField(
+                controller: _phoneNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You will receive a prompt on your phone to confirm payment.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+            ] else if (_selectedPaymentMethod == 'Credit/Debit Card') ...[
+              // Credit card form would go here
+              const Text('Credit card payment is coming soon!')
+            ],
+
+            const SizedBox(height: 32),
+
+            // Pay button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        // Handle payment logic
+                        _processPayment(context, paymentType);
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.blue,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text(
                         'Pay Now',
-                        style: TextStyle(fontSize: 18),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _processPayment(BuildContext context, String paymentType) {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Simulate payment processing with a delay
+    Future.delayed(const Duration(seconds: 2), () {
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Show success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Payment Successful'),
+          content: Text(paymentType == 'appointment'
+              ? 'Your appointment has been confirmed.'
+              : 'Your order has been confirmed.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Go back to previous screen
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
