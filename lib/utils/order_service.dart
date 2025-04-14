@@ -9,11 +9,11 @@ import 'package:winal_front_end/models/cart_item.dart';
 class OrderService {
   // Base URL for the Flask backend API - should match your auth_service.dart
   // Update this URL if your backend server is running on a different address
-  final String baseUrl = 'http://192.168.43.57:5000';
+  final String baseUrl = 'http://192.168.43.6.:5000';
 
   // Alternative server URLs to try if the primary one fails
   final List<String> fallbackUrls = [
-    'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
+    'http://192.168.43.6.:5000', // Primary IP (mobile hotspot)
     'http://localhost:5000', // Local development
     'http://10.0.2.2:5000' // Android emulator to host loopback
   ];

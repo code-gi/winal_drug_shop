@@ -38,7 +38,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'lowStockItems': []
   };
 
-  String baseUrl = 'http://192.168.43.57:5000';
+  String baseUrl = 'http://192.168.43.6.:5000';
 
   @override
   void initState() {
