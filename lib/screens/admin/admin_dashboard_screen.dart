@@ -38,7 +38,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'lowStockItems': []
   };
 
-  String baseUrl = 'http://192.168.43.57:5000';
+  String baseUrl = 'https://winal-backend.onrender.com';
 
   @override
   void initState() {

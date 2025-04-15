@@ -250,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> {
         content:
             const Text("Could not connect to the server. Please check that:\n\n"
                 "1. Your backend server is running\n"
-                "2. The server address (192.168.43.57:5000) is correct\n"
+                "2. The server address https://winal-backend.onrender.com is correct\n"
                 "3. Your device and computer are on the same network\n"
                 "4. Windows firewall is not blocking port 5000"),
         actions: [

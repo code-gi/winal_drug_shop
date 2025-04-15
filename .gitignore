@@ -113,5 +113,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
-/backend/.env
+backend/.env
 
+
+backend\.env
