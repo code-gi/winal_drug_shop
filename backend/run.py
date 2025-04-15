@@ -59,7 +59,7 @@ def index():
 
 # Run the application
 if __name__ == '__main__':
-    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    host = '192.168.43.6'
     port = int(os.getenv('FLASK_PORT', 5000))
     debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     

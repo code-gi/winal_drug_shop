@@ -5,7 +5,7 @@ import 'dart:developer' as developer;
 
 class AuthService {
   // Base URL for the Flask backend API
-  final String baseUrl = 'http://192.168.43.6.:5000';
+  final String baseUrl = 'http://192.168.43.6:5000';
   static const String TOKEN_KEY = 'auth_token';
 
   // Save token to SharedPreferences
