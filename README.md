@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Winal Drug Shop
 
 A comprehensive Flutter application for a pharmacy that provides both human and animal medications, along with additional services.
@@ -120,3 +121,6 @@ Once you have completed the setup above:
    flutter run -d windows    # For Windows
    flutter run -d [device-id] # For a specific device
    ```
+=======
+# winal_drug_shop
+>>>>>>> 45f462f58ee19778ce463c2136b5ca3b19cd6158
