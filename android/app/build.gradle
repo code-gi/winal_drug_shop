@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.winal_front_end"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "25.1.8937393" // Fixed NDK version known to work with Flutter
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

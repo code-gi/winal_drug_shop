@@ -1,0 +1,2 @@
+D:/projects/winal_drug_shop/android/app/.cxx/Debug/85i6d736/x86/CMakeFiles/edit_cache.dir
+D:/projects/winal_drug_shop/android/app/.cxx/Debug/85i6d736/x86/CMakeFiles/rebuild_cache.dir
