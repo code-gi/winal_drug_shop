@@ -7,13 +7,13 @@ import 'package:winal_front_end/models/order.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 
 class OrderService {
-  // Base URL for the Flask backend API - should match your auth_service.dart
-  // Update this URL if your backend server is running on a different address
-  final String baseUrl = 'http://192.168.43.57:5000';
+  // Base URL for the Flask backend API - now hosted on Render.com
+  final String baseUrl = 'https://winal-backend.onrender.com';
 
   // Alternative server URLs to try if the primary one fails
   final List<String> fallbackUrls = [
-    'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
+    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
     'http://localhost:5000', // Local development
     'http://10.0.2.2:5000' // Android emulator to host loopback
   ];

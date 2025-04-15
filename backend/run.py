@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
-from app import create_app, db
+from app import create_app, db, migrate
 from app.models import User
+from flask_migrate import Migrate
 import logging
 
 # Configure logging
@@ -14,11 +15,14 @@ logger = logging.getLogger(__name__)
 # Load environment variables from .env file
 load_dotenv()
 
-# Get configuration from environment or default to development
-config_name = os.getenv('FLASK_CONFIG', 'default')
+# Get environment from .env file or default to development
+config_name = os.environ.get('FLASK_ENV', 'production')
 
 # Create the Flask application instance
 app = create_app(config_name)
+
+# Import models to ensure they're registered with SQLAlchemy before migration
+from app.models import User  # Import models after app creation
 
 # Create CLI command for initializing the database
 @app.cli.command('init-db')
@@ -54,13 +58,15 @@ def create_admin():
 def index():
     return {
         'message': 'Welcome to Winal Drug Shop API',
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'status': 'online'
     }
+
+@app.shell_context_processor
+def make_shell_context():
+    return {'db': db, 'User': User}
 
 # Run the application
 if __name__ == '__main__':
-    host = os.getenv('FLASK_HOST', '0.0.0.0')
-    port = int(os.getenv('FLASK_PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
-    
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=os.environ.get('FLASK_HOST', '0.0.0.0'),
+            port=int(os.environ.get('FLASK_PORT', 5000)))

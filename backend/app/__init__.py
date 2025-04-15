@@ -1,33 +1,36 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager, get_jwt
-from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_migrate import Migrate
+from flask_bcrypt import Bcrypt
+import os
+import sys
 from datetime import datetime, timezone
 
-from .config import config
+# Add the parent directory to the path so we can import the config module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import config
 
-# Initialize extensions
 db = SQLAlchemy()
-migrate = Migrate()
 jwt = JWTManager()
-bcrypt = Bcrypt()
-
+migrate = Migrate()
+bcrypt = Bcrypt()  # Add bcrypt instance
 
 def create_app(config_name='default'):
     """Application factory function"""
     print("\n=== Creating Flask Application ===")
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+    config[config_name].init_app(app)
     print(f"Initialized with config: {config_name}")
     
     # Initialize extensions with app
     db.init_app(app)
-    migrate.init_app(app, db)
     jwt.init_app(app)
-    bcrypt.init_app(app)
     CORS(app, supports_credentials=True)
+    migrate.init_app(app, db)
+    bcrypt.init_app(app)  # Initialize bcrypt
     print("All extensions initialized")
 
     # Set up request logging

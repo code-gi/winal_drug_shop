@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: winal-drug-shop-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    plan: free
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: run.py
+      - key: FLASK_DEBUG
+        value: false
+      - key: SECRET_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: RENDER_EXTERNAL_URL
+        value: https://winal-backend.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: winal_drug_db
+          property: connectionString
+
+databases:
+  - name: winal_drug_db
+    plan: free

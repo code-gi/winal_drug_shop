@@ -23,8 +23,8 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
   Future<void> fetchFarmActivities() async {
     try {
       print('Fetching farm activities...');
-      final response = await http
-          .get(Uri.parse('http://192.168.43.57:5000/api/farm-activities'));
+      final response = await http.get(
+          Uri.parse('https://winal-backend.onrender.com/api/farm-activities'));
       print('Response status code: ${response.statusCode}');
       print('Response body: ${response.body}');
 

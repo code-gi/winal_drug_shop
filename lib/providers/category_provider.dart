@@ -10,9 +10,10 @@ class CategoryProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   final List<String> _fallbackUrls = [
-    'http://192.168.43.57:5000', // Primary IP (mobile hotspot)
-    'http://10.0.2.2:5000', // Android emulator to host loopback
-    'http://localhost:5000', // Local development - lowest priority since it rarely works on mobile
+    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
+    'http://localhost:5000', // Local development
+    'http://10.0.2.2:5000' // Android emulator to host loopback
   ];
 
   // Add a variable to track if we're using cached data

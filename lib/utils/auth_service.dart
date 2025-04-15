@@ -4,8 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
 class AuthService {
-  // Base URL for the Flask backend API
-  final String baseUrl = 'http://192.168.43.57:5000';
+  // Base URL for the Flask backend API - now hosted on Render.com
+  final String baseUrl = 'https://winal-backend.onrender.com';
+
+  // Alternative server URLs to try if the primary one fails
+  final List<String> fallbackUrls = [
+    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
+    'http://localhost:5000', // Local development
+    'http://10.0.2.2:5000' // Android emulator to host loopback
+  ];
+
   static const String TOKEN_KEY = 'auth_token';
 
   // Save token to SharedPreferences
