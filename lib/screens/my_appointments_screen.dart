@@ -46,11 +46,11 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return Colors.green;
+        return const Color(0xFF1976D2); // Primary blue instead of green
       case 'pending':
         return Colors.orange;
       case 'completed':
-        return Colors.blue;
+        return const Color(0xFF42A5F5); // Light blue
       case 'cancelled':
         return Colors.red;
       default:
@@ -90,8 +90,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
       final appointmentDateTime = _parseDateTime(
           appointment.appointmentDate, appointment.appointmentTime);
       final status = appointment.status.toLowerCase();
-      final isPastOrPresent = appointmentDateTime.isBefore(now) || appointmentDateTime.isAtSameMomentAs(now);
-      final isCompletedOrCancelled = status == 'completed' || status == 'cancelled';
+      final isPastOrPresent = appointmentDateTime.isBefore(now) ||
+          appointmentDateTime.isAtSameMomentAs(now);
+      final isCompletedOrCancelled =
+          status == 'completed' || status == 'cancelled';
 
       if (_showUpcoming) {
         // Show in upcoming tab only if:
@@ -103,7 +105,6 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
         // 1. The appointment is in the past/present OR
         // 2. The status is completed or cancelled
         return isPastOrPresent || isCompletedOrCancelled;
-            status == 'cancelled';
       }
     }).toList();
   }
@@ -205,7 +206,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
               floating: true,
               pinned: true,
               snap: true,
-              backgroundColor: Colors.green,
+              backgroundColor: const Color.fromRGBO(0, 19, 34, 1),
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(
                   'My Appointments',
@@ -256,7 +257,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
         body: Column(
           children: [
             Container(
-              color: Colors.green,
+              color: const Color.fromARGB(255, 0, 36, 41),
               child: TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.white,
@@ -278,105 +279,112 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
               child: _isLoading
                   ? Center(child: CircularProgressIndicator())
                   : _errorMessage.isNotEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 60, color: Colors.red),
-                        SizedBox(height: 16),
-                        Text(
-                          _errorMessage,
-                          style: TextStyle(fontSize: 16),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _fetchAppointments,
-                          child: Text('Try Again'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : _filteredAppointments.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _showUpcoming ? Icons.event_busy : Icons.history,
-                              size: 80,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              _showUpcoming
-                                  ? 'No upcoming appointments'
-                                  : 'No past appointments',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline,
+                                  size: 60, color: Colors.red),
+                              SizedBox(height: 16),
+                              Text(
+                                _errorMessage,
+                                style: TextStyle(fontSize: 16),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                            SizedBox(height: 8),
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(
-                                  context, '/farm_activities'),
-                              child: Text(
-                                'Book a service now',
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
+                              SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _fetchAppointments,
+                                child: Text('Try Again'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 19, 0, 49),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
                                 ),
                               ),
+                            ],
+                          ),
+                        )
+                      : _filteredAppointments.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _showUpcoming
+                                        ? Icons.event_busy
+                                        : Icons.history,
+                                    size: 80,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    _showUpcoming
+                                        ? 'No upcoming appointments'
+                                        : 'No past appointments',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  TextButton(
+                                    onPressed: () => Navigator.pushNamed(
+                                        context, '/farm_activities'),
+                                    child: Text(
+                                      'Book a service now',
+                                      style: TextStyle(
+                                        color: const Color.fromARGB(255, 242, 251, 255),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _fetchAppointments,
+                              color: const Color.fromARGB(255, 0, 64, 92),
+                              child: ListView.builder(
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 12),
+                                itemCount: _filteredAppointments.length,
+                                itemBuilder: (context, index) {
+                                  final appointment =
+                                      _filteredAppointments[index];
+                                  final activity =
+                                      _activityMap[appointment.farmActivityId];
+
+                                  // Format date and time
+                                  final date = DateFormat('EEEE, MMMM d, yyyy')
+                                      .format(DateTime.parse(
+                                          appointment.appointmentDate));
+                                  final time = DateFormat('h:mm a').format(
+                                      DateFormat('HH:mm:ss')
+                                          .parse(appointment.appointmentTime));
+
+                                  return AppointmentCard(
+                                    appointment: appointment,
+                                    activity: activity,
+                                    date: date,
+                                    time: time,
+                                    statusColor:
+                                        _getStatusColor(appointment.status),
+                                    onTap: () {
+                                      // Show appointment details
+                                      _showAppointmentDetails(
+                                          appointment, activity);
+                                    },
+                                  );
+                                },
+                              ),
                             ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _fetchAppointments,
-                        color: Colors.green,
-                        child: ListView.builder(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 12),
-                          itemCount: _filteredAppointments.length,
-                          itemBuilder: (context, index) {
-                            final appointment = _filteredAppointments[index];
-                            final activity =
-                                _activityMap[appointment.farmActivityId];
-
-                            // Format date and time
-                            final date = DateFormat('EEEE, MMMM d, yyyy')
-                                .format(DateTime.parse(
-                                    appointment.appointmentDate));
-                            final time = DateFormat('h:mm a').format(
-                                DateFormat('HH:mm:ss')
-                                    .parse(appointment.appointmentTime));
-
-                            return AppointmentCard(
-                              appointment: appointment,
-                              activity: activity,
-                              date: date,
-                              time: time,
-                              statusColor: _getStatusColor(appointment.status),
-                              onTap: () {
-                                // Show appointment details
-                                _showAppointmentDetails(appointment, activity);
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 0, 64, 92),
         child: Icon(Icons.add),
         onPressed: () {
           Navigator.pushNamed(context, '/farm_activities');
@@ -496,7 +504,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                     _showCancelConfirmation(appointment.id);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color.fromARGB(255, 90, 23, 19),
                     padding: EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -525,7 +533,7 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: const Color.fromARGB(255, 5, 102, 102),
                     padding: EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

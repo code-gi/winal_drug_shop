@@ -40,8 +40,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.green,
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
               onPrimary: Colors.white,
               onSurface: Colors.black,
             ),
@@ -64,8 +64,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.green,
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
             ),
           ),
           child: child!,
@@ -160,7 +160,23 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Appointment'),
-        backgroundColor: Colors.green,
+        // Using theme's primary color instead of hardcoded green
+        iconTheme: const IconThemeData(
+            color: Colors.white), // Ensuring icons are visible
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                selectedDate = DateTime.now();
+                selectedTime = TimeOfDay.now();
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Appointment details reset')),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -195,10 +211,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Price: UGX ${widget.activity.price.toStringAsFixed(0)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                     Text(

@@ -47,7 +47,6 @@ class _HealthTipsScreenState extends State<HealthTipsScreen> {
       backgroundColor: const Color.fromARGB(255, 218, 222, 226),
       appBar: AppBar(
         title: const Text('Health Tips'),
-        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
