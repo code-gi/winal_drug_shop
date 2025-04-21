@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/screens/login_screen.dart';
+import 'package:winal_front_end/utils/email_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -218,6 +219,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       if (success) {
+        // Send welcome email
+        try {
+          final emailResult = await EmailService.sendLocalWelcomeEmail(
+            name: _fullNameController.text,
+            email: _emailController.text,
+          );
+
+          if (emailResult['success']) {
+            print(
+                'Welcome email sent successfully to ${_emailController.text}');
+          } else {
+            print('Failed to send welcome email: ${emailResult['message']}');
+          }
+        } catch (e) {
+          print('Error sending welcome email: $e');
+        }
+
         _showSignUpSuccess(context);
         // Navigate to login screen after short delay
         Future.delayed(const Duration(seconds: 2), () {

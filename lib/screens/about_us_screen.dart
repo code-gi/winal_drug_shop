@@ -508,14 +508,23 @@ class _AboutUsScreenState extends State<AboutUsScreen>
   }
 
   Widget _buildSocialButton(IconData icon, Color color) {
+    String url = '';
+
+    if (icon == FontAwesomeIcons.facebook) {
+      url = 'https://www.facebook.com/winaldrugshop';
+    } else if (icon == FontAwesomeIcons.twitter) {
+      url = 'https://twitter.com/winaldrugshop';
+    } else if (icon == FontAwesomeIcons.instagram) {
+      url = 'https://www.instagram.com/winaldrugshop';
+    } else if (icon == FontAwesomeIcons.whatsapp) {
+      url = 'https://wa.me/256704550075';
+    }
     return CircleAvatar(
       radius: 22,
       backgroundColor: color,
       child: IconButton(
         icon: FaIcon(icon, color: Colors.white, size: 20),
-        onPressed: () {
-          // Add social media link logic here
-        },
+        onPressed: () => _launchUrl(url),
       ),
     );
   }
