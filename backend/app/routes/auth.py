@@ -66,11 +66,19 @@ def register():
             date_of_birth=datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if 'date_of_birth' in data else None
         )
         db.session.add(new_user)
-        db.session.commit()
-
-        # Generate tokens
+        db.session.commit()        # Generate tokens
         access_token = create_access_token(identity=new_user.id)
         refresh_token = create_refresh_token(identity=new_user.id)
+
+        # Send welcome email
+        try:
+            from app.utils.gmail_service import send_welcome_email
+            send_welcome_email(new_user.email, new_user.first_name)
+            print(f"Welcome email sent to {new_user.email}")
+        except Exception as e:
+            # Don't interrupt registration if email fails
+            print(f"Error sending welcome email: {str(e)}")
+            current_app.logger.error(f"Welcome email error: {str(e)}")
 
         return jsonify({
             'message': 'Registration successful',
