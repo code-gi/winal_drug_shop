@@ -43,9 +43,9 @@ dependencies:
   geolocator: ^13.0.3
   url_launcher: ^6.2.5
   flutter_animate: ^4.2.0
-  animations: ^2.0.7
+  animations: ^2.0.7  
   glassmorphism: ^3.0.0  # Added for backend integration
-  http: ^1.1.0
+  http: ^0.13.6  # Downgraded to be compatible with sendgrid_mailer
   shared_preferences: ^2.2.2
   provider: ^6.0.5
   share_plus: ^7.2.1
@@ -53,6 +53,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   uuid: ^4.4.2
   intl: ^0.20.2
+  sendgrid_mailer: ^0.1.3
 
 dev_dependencies:
   flutter_test:

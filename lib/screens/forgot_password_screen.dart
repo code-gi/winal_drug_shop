@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../utils/email_service.dart';
+import '../utils/auth_service.dart';
+import 'dart:developer' as developer;
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -20,6 +23,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   bool isEmailSent = false;
   bool isCodeVerified = false;
   String? errorMessage;
+  
+  // Create instances of services
+  final AuthService _authService = AuthService();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -62,15 +68,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
-      // For demonstration, we'll simulate a successful API call
-      // In a production app, this would be a real API call
-      await Future.delayed(const Duration(seconds: 2));
+      // First check if email exists
+      final emailCheckResult = await _authService.requestPasswordReset(email);
+      
+      if (!emailCheckResult['success']) {
+        setState(() {
+          errorMessage = emailCheckResult['message'] ?? 'Email not found or invalid';
+          isLoading = false;
+        });
+        return;
+      }
+      
+      // Send password reset email with verification code
+      final result = await EmailService.sendPasswordResetEmail(email: email);
       
       setState(() {
-        isEmailSent = true;
         isLoading = false;
+        if (result['success']) {
+          isEmailSent = true;
+          errorMessage = null;
+        } else {
+          errorMessage = result['message'] ?? 'Failed to send verification code';
+        }
       });
+      
     } catch (e) {
+      developer.log('Password reset error', error: e);
       setState(() {
         errorMessage = 'Network error. Please check your connection and try again.';
         isLoading = false;
@@ -80,6 +103,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
   Future<void> _verifyCode() async {
     final code = codeController.text.trim();
+    final email = emailController.text.trim();
+    
     if (code.isEmpty) {
       setState(() {
         errorMessage = "Please enter the verification code";
@@ -93,12 +118,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
-      // Simulate verification
-      await Future.delayed(const Duration(seconds: 1));
+      // Verify the code
+      final isValid = EmailService.verifyCode(email, code);
       
       setState(() {
-        isCodeVerified = true;
         isLoading = false;
+        if (isValid) {
+          isCodeVerified = true;
+          errorMessage = null;
+        } else {
+          errorMessage = 'Invalid verification code. Please try again.';
+        }
       });
     } catch (e) {
       setState(() {
@@ -109,6 +139,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   }
 
   Future<void> _resetPassword() async {
+    final email = emailController.text.trim();
+    final code = codeController.text.trim();
     final newPassword = newPasswordController.text;
     final confirmPassword = confirmPasswordController.text;
 
@@ -139,36 +171,49 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
-      // Simulate password reset
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Show success dialog
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text("Success"),
-            content: const Text("Your password has been reset successfully."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);  // Close dialog
-                  Navigator.pop(context);  // Return to login screen
-                },
-                child: const Text("Back to Login"),
-              ),
-            ],
-          ),
-        );
-      }
+      // Call the reset password API
+      final result = await _authService.resetPassword(
+        email: email,
+        verificationCode: code,
+        newPassword: newPassword,
+      );
       
       setState(() {
         isLoading = false;
       });
+      
+      if (result['success']) {
+        // Clear the verification code after successful reset
+        EmailService.clearVerificationCode(email);
+        
+        // Show success dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text("Success"),
+              content: const Text("Your password has been reset successfully."),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);  // Close dialog
+                    Navigator.pop(context);  // Return to login screen
+                  },
+                  child: const Text("Back to Login"),
+                ),
+              ],
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          errorMessage = result['message'] ?? 'Failed to reset password. Please try again.';
+        });
+      }
     } catch (e) {
       setState(() {
-        errorMessage = 'Failed to reset password. Please try again.';
+        errorMessage = 'An error occurred. Please try again.';
         isLoading = false;
       });
     }
