@@ -87,13 +87,12 @@ def register():
 def login():
     """Login and receive JWT token"""
     data = request.get_json()
-    
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({"message": "Email and password required"}), 400
     
     user = User.query.filter_by(email=data['email'].lower()).first()
     
-    if not user or not bcrypt.checkpw(data['password'].encode('utf-8'), user.password.encode('utf-8')):
+    if not user or not user.verify_password(data['password']):
         return jsonify({"message": "Invalid credentials"}), 401
     
     access_token = create_access_token(
@@ -220,10 +219,13 @@ def reset_password():
     
     if not user:
         return jsonify({"message": "Email not found"}), 404
-    
-    # Verify the code
+      # Verify the code
     try:
-        if not verify_code(email, verification_code):
+        print(f"Attempting to verify code: '{verification_code}' for email: '{email}'")
+        is_valid = verify_code(email, verification_code)
+        print(f"Code verification result: {is_valid}")
+        
+        if not is_valid:
             return jsonify({"message": "Invalid or expired verification code"}), 400
         
         # Update password
@@ -233,6 +235,7 @@ def reset_password():
         
         # Clear the verification code after successful reset
         clear_verification_code(email)
+        print(f"Password reset successful for email: {email}")
         
         return jsonify({"message": "Password reset successful"}), 200
     except Exception as e:

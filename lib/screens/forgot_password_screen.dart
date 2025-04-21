@@ -18,17 +18,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   final TextEditingController emailController = TextEditingController();
   final TextEditingController codeController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool isLoading = false;
   bool isEmailSent = false;
   bool isCodeVerified = false;
   String? errorMessage;
-  
+
   // Create instances of services
   final AuthService _authService = AuthService();
   final EmailService _emailService = EmailService();
-  
+
   // Store verification code locally as it's no longer in the old service
   String? _verificationCode;
 
@@ -74,43 +75,48 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
     try {
       print('📱 SCREEN DEBUG: Starting password reset for email: $email');
-      
+
       // First check if email exists
       final emailCheckResult = await _authService.requestPasswordReset(email);
       print('📱 SCREEN DEBUG: Email check result: $emailCheckResult');
-      
+
       if (!emailCheckResult['success']) {
         setState(() {
-          errorMessage = emailCheckResult['message'] ?? 'Email not found or invalid';
+          errorMessage =
+              emailCheckResult['message'] ?? 'Email not found or invalid';
           isLoading = false;
         });
         print('📱 SCREEN DEBUG: Email check failed: $errorMessage');
         return;
       }
-      
+
+      // Send password reset email with verification code      print('📱 SCREEN DEBUG: Email exists, sending verification code');
+
       // Send password reset email with verification code
-      print('📱 SCREEN DEBUG: Email exists, sending verification code');
-      
-      // Generate a verification code locally (6 digits)
-      _verificationCode = (100000 + (DateTime.now().millisecondsSinceEpoch % 900000)).toString();
-      print('📱 SCREEN DEBUG: Generated verification code: $_verificationCode');
-      
-      // Send password reset email
-      final result = await _emailService.sendPasswordResetEmail(
+      // No longer generate code locally - use the backend's code
+      final emailResult = await _emailService.sendPasswordResetEmail(
         to: email,
         name: null, // No name available in this context
       );
-      
+
       setState(() {
         isLoading = false;
-        if (result) {
+        if (emailResult['success']) {
           isEmailSent = true;
           errorMessage = null;
           print('📱 SCREEN DEBUG: Verification code sent successfully');
-          
+
+          // Use the backend's verification code if provided (for development mode)
+          if (emailResult.containsKey('code') && emailResult['code'] != null) {
+            _verificationCode = emailResult['code'];
+            print(
+                '📱 SCREEN DEBUG: Using backend verification code: $_verificationCode');
+          }
+
           // Show the verification code in development mode
           if (_verificationCode != null) {
-            DebugHelper.showVerificationCode(context, email, _verificationCode!);
+            DebugHelper.showVerificationCode(
+                context, email, _verificationCode!);
             // Also print in large format for easy viewing
             print('\n\n');
             print('=============================================');
@@ -119,13 +125,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             print('=============================================');
             print('\n\n');
           }
-          
+
           // Show debug toast
-          DebugHelper.showDebugToast(context, 'Verification code sent. Check console for the code.');
+          DebugHelper.showDebugToast(context,
+              'Verification code sent. Check your email and console for the code.');
         } else {
-          errorMessage = 'Failed to send verification code';
-          print('📱 SCREEN DEBUG: Failed to send verification code');
-          
+          errorMessage =
+              emailResult['message'] ?? 'Failed to send verification code';
+          print(
+              '📱 SCREEN DEBUG: Failed to send verification code: $errorMessage');
+
           // Even though the email failed, we can still use the local verification code
           print('\n\n');
           print('=============================================');
@@ -133,17 +142,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           print('🔑 $_verificationCode');
           print('=============================================');
           print('\n\n');
-          
+
           // Show debug toast for error
-          DebugHelper.showDebugToast(context, 'Email failed, but you can still use the local verification code. Check console.');
+          DebugHelper.showDebugToast(context,
+              'Email failed, but you can still use the local verification code. Check console.');
         }
       });
-      
     } catch (e) {
       developer.log('Password reset error', error: e);
       print('📱 SCREEN DEBUG: Exception in password reset: ${e.toString()}');
       setState(() {
-        errorMessage = 'Network error. Please check your connection and try again.';
+        errorMessage =
+            'Network error. Please check your connection and try again.';
         isLoading = false;
       });
     }
@@ -152,7 +162,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   Future<void> _verifyCode() async {
     final code = codeController.text.trim();
     final email = emailController.text.trim();
-    
+
     if (code.isEmpty) {
       setState(() {
         errorMessage = "Please enter the verification code";
@@ -170,7 +180,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       print('📱 SCREEN DEBUG: Verifying code: $code for email: $email');
       final isValid = code == _verificationCode;
       print('📱 SCREEN DEBUG: Code verification result: $isValid');
-      
+
       setState(() {
         isLoading = false;
         if (isValid) {
@@ -225,26 +235,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
 
     try {
       print('📱 SCREEN DEBUG: Resetting password for email: $email');
-      
+
       // Call the reset password API
       final result = await _authService.resetPassword(
         email: email,
         verificationCode: code,
         newPassword: newPassword,
       );
-      
+
       print('📱 SCREEN DEBUG: Password reset result: $result');
-      
+
       setState(() {
         isLoading = false;
       });
-      
+
       if (result['success']) {
         print('📱 SCREEN DEBUG: Password reset successful');
-        
+
         // Clear the verification code after successful reset
         _verificationCode = null;
-        
+
         // Show success dialog
         if (mounted) {
           showDialog(
@@ -256,8 +266,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);  // Close dialog
-                    Navigator.pop(context);  // Return to login screen
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Return to login screen
                   },
                   child: const Text("Back to Login"),
                 ),
@@ -268,7 +278,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       } else {
         print('📱 SCREEN DEBUG: Password reset failed: ${result['message']}');
         setState(() {
-          errorMessage = result['message'] ?? 'Failed to reset password. Please try again.';
+          errorMessage = result['message'] ??
+              'Failed to reset password. Please try again.';
         });
       }
     } catch (e) {
@@ -458,7 +469,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.green[600], size: 24),
+              Icon(Icons.check_circle_outline,
+                  color: Colors.green[600], size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

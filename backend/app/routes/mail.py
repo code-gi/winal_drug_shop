@@ -36,11 +36,21 @@ def send_reset():
         # Log password reset attempt
         current_app.logger.info(f"Sending password reset email to {email}")
         
-        # Send password reset email
+        # Send password reset email and get the generated code
         result = send_password_reset_email(user.email, user.first_name)
         
+        # For easier debugging, include the verification code in the response during development
+        # In production, this should be removed for security
+        from app.utils.gmail_service import verification_codes
+        debug_info = {}
+        if email in verification_codes and os.environ.get('FLASK_ENV') == 'development':
+            debug_info = {"code": verification_codes[email]['code']}
+        
         if result:
-            return jsonify({"message": "Password reset instructions sent"}), 200
+            return jsonify({
+                "message": "Password reset instructions sent",
+                **debug_info
+            }), 200
         else:
             return jsonify({"message": "Failed to send password reset email"}), 500
     
