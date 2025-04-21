@@ -224,13 +224,11 @@ def reset_password():
         print(f"Attempting to verify code: '{verification_code}' for email: '{email}'")
         is_valid = verify_code(email, verification_code)
         print(f"Code verification result: {is_valid}")
-        
         if not is_valid:
             return jsonify({"message": "Invalid or expired verification code"}), 400
         
-        # Update password
-        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        user.password = hashed_password
+        # Update password - use the User model's password setter
+        user.password = new_password  # This will use the setter method which hashes the password
         db.session.commit()
         
         # Clear the verification code after successful reset

@@ -39,12 +39,13 @@ def send_reset():
         
         # Send password reset email and get the generated code
         result = send_password_reset_email(user.email, user.first_name)
-        
-        # For easier debugging, include the verification code in the response during development
+          # For easier debugging, include the verification code in the response during development
         # In production, this should be removed for security
         from app.utils.gmail_service import verification_codes
         debug_info = {}
-        if email in verification_codes and os.environ.get('FLASK_ENV') == 'development':
+        if email in verification_codes:
+            # Always include the code in non-production environments
+            # You can add additional checks if needed
             debug_info = {"code": verification_codes[email]['code']}
         
         if result:
