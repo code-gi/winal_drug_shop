@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from app.utils.gmail_service import send_password_reset_email, generate_verification_code, store_verification_code
 from app.models.user import User
 from app.utils.validation import validate_email
+import os
 
 mail_bp = Blueprint('mail', __name__)
 
