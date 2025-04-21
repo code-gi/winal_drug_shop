@@ -38,11 +38,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     'lowStockItems': []
   };
 
-  String baseUrl = 'http://192.168.43.57:5000';
+  late AuthService _authService;
 
   @override
   void initState() {
     super.initState();
+    _authService = AuthService(); // Initialize the auth service
     _checkAuthAndFetchData();
   }
 
@@ -53,10 +54,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (token == null) {
       _redirectToLogin();
       return;
-    }
-
-    // Verify token validity
+    } // Verify token validity with the current dynamic base URL
     try {
+      // Use the public baseUrl property instead of the private _getWorkingBaseUrl method
+      final baseUrl = _authService.baseUrl;
+
       final response = await http.get(
         Uri.parse('$baseUrl/api/auth/token-debug'),
         headers: {
@@ -66,12 +68,56 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
 
       if (response.statusCode == 200) {
-        await _fetchDashboardData();
+        // Check if the user is an admin
+        final userResponse = await http.get(
+          Uri.parse('$baseUrl/api/users/me'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (userResponse.statusCode == 200) {
+          final userData = json.decode(userResponse.body);
+          if (userData['is_admin'] == true) {
+            await _fetchDashboardData();
+          } else {
+            // User is not an admin
+            _showNotAdminDialog();
+          }
+        } else {
+          _redirectToLogin();
+        }
       } else {
         _redirectToLogin();
       }
     } catch (e) {
+      print('Error checking authentication: $e');
       _redirectToLogin();
+    }
+  }
+
+  void _showNotAdminDialog() {
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Access Denied'),
+            content: const Text('You do not have administrator privileges.'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _redirectToLogin();
+                },
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
@@ -91,6 +137,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(AuthService.TOKEN_KEY);
+      final baseUrl =
+          _authService.baseUrl; // Get the base URL from auth service
 
       print('Fetching dashboard data...');
       print('Token available: ${token != null}');

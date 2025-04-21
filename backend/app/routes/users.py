@@ -23,8 +23,7 @@ def get_profile():
         if not user:
             current_app.logger.error(f"User not found with ID: {user_id}")
             return jsonify({'message': 'User not found'}), 404
-        
-        # Return user profile data (excluding password)
+          # Return user profile data (excluding password)
         user_data = {
             'id': user.id,
             'email': user.email,
@@ -32,7 +31,8 @@ def get_profile():
             'last_name': user.last_name,
             'phone_number': getattr(user, 'phone_number', None),
             'date_of_birth': user.date_of_birth.strftime('%Y-%m-%d') if hasattr(user, 'date_of_birth') and user.date_of_birth else None,
-            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(user, 'created_at') else None
+            'created_at': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(user, 'created_at') else None,
+            'is_admin': user.is_admin  # Add the is_admin flag
         }
         
         return jsonify(user_data), 200
