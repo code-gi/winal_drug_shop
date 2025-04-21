@@ -6,14 +6,17 @@ class EmailService {
   final String _baseUrl;
   
   // Use the Render.com hosted backend URL by default instead of localhost
-  EmailService({String? baseUrl}) : _baseUrl = baseUrl ?? 'https://winaldrugshop-backend.onrender.com';
+  EmailService({String? baseUrl}) : _baseUrl = baseUrl ?? 'https://winal-backend.onrender.com';
   
   /// Validates if Gmail API credentials are set up correctly
   Future<bool> validateApiKey() async {
     try {
       // Check if the backend is reachable
+      final isWinalBackend = _baseUrl.contains('winal-backend');
+      final healthEndpoint = isWinalBackend ? '/api/health' : '/api/health-check';
+      
       final response = await http.get(
-        Uri.parse('$_baseUrl/api/health-check'),
+        Uri.parse('$_baseUrl$healthEndpoint'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(const Duration(seconds: 10));
       
@@ -21,6 +24,17 @@ class EmailService {
         debugPrint('Backend is reachable at $_baseUrl');
         return true;
       } else {
+        // Try the root endpoint as fallback
+        final rootResponse = await http.get(
+          Uri.parse('$_baseUrl/'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 10));
+        
+        if (rootResponse.statusCode == 200) {
+          debugPrint('Backend root is reachable at $_baseUrl');
+          return true;
+        }
+        
         debugPrint('Backend returned status code: ${response.statusCode}');
         return false;
       }
@@ -38,8 +52,16 @@ class EmailService {
   }) async {
     try {
       debugPrint('Sending test email to $to via $_baseUrl');
+      
+      // Check which server we're using
+      final isWinalBackend = _baseUrl.contains('winal-backend');
+      
+      final endpoint = isWinalBackend 
+          ? '/api/mail/send-welcome'  // winal-backend.onrender.com endpoint
+          : '/api/notifications/welcome-email'; // winaldrugshop-backend endpoint
+          
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/notifications/welcome-email'),
+        Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': to,
@@ -67,8 +89,16 @@ class EmailService {
   }) async {
     try {
       debugPrint('Sending password reset email to $to via $_baseUrl');
+      
+      // Check which server we're using
+      final isWinalBackend = _baseUrl.contains('winal-backend');
+      
+      final endpoint = isWinalBackend 
+          ? '/api/mail/send-reset'  // winal-backend.onrender.com endpoint
+          : '/api/notifications/password-reset'; // winaldrugshop-backend endpoint
+      
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/notifications/password-reset'),
+        Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': to,
@@ -107,8 +137,15 @@ class EmailService {
         'items': items,
       };
       
+      // Check which server we're using
+      final isWinalBackend = _baseUrl.contains('winal-backend');
+      
+      final endpoint = isWinalBackend 
+          ? '/api/mail/send-order-confirmation'  // winal-backend.onrender.com endpoint
+          : '/api/notifications/order-confirmation'; // winaldrugshop-backend endpoint
+      
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/notifications/order-confirmation'),
+        Uri.parse('$_baseUrl$endpoint'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': to,

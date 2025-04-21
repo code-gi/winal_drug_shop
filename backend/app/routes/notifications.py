@@ -139,4 +139,18 @@ def send_order_conf():
 @notifications_bp.route('/health-check', methods=['GET'])
 def health_check():
     """Simple health check endpoint to verify API connectivity"""
-    return jsonify({"status": "ok", "message": "API is up and running"}), 200 
+    return jsonify({"status": "ok", "message": "API is up and running"}), 200
+
+@notifications_bp.route('/', methods=['GET'])
+def root_health_check():
+    """Root endpoint for easy access and testing"""
+    return jsonify({
+        "status": "ok", 
+        "message": "Winal Drug Shop API is running", 
+        "endpoints": {
+            "welcome-email": "POST /api/notifications/welcome-email",
+            "password-reset": "POST /api/notifications/password-reset",
+            "order-confirmation": "POST /api/notifications/order-confirmation",
+            "health-check": "GET /api/notifications/health-check"
+        }
+    }), 200 

@@ -111,6 +111,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           // Show the verification code in development mode
           if (_verificationCode != null) {
             DebugHelper.showVerificationCode(context, email, _verificationCode!);
+            // Also print in large format for easy viewing
+            print('\n\n');
+            print('=============================================');
+            print('🔑 VERIFICATION CODE FOR $email:');
+            print('🔑 $_verificationCode');
+            print('=============================================');
+            print('\n\n');
           }
           
           // Show debug toast
@@ -119,8 +126,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           errorMessage = 'Failed to send verification code';
           print('📱 SCREEN DEBUG: Failed to send verification code');
           
+          // Even though the email failed, we can still use the local verification code
+          print('\n\n');
+          print('=============================================');
+          print('⚠️ EMAIL FAILED BUT YOU CAN STILL USE THIS CODE:');
+          print('🔑 $_verificationCode');
+          print('=============================================');
+          print('\n\n');
+          
           // Show debug toast for error
-          DebugHelper.showDebugToast(context, 'Error: $errorMessage');
+          DebugHelper.showDebugToast(context, 'Email failed, but you can still use the local verification code. Check console.');
         }
       });
       

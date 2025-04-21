@@ -1,18 +1,19 @@
 import os
 import base64
-import pickle
 import json
 import logging
+import pickle
+import random
+import string
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from flask import current_app
-from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import random
-import string
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +28,6 @@ FROM_EMAIL = os.getenv('GMAIL_SENDER', 'astrondaniel6@gmail.com')
 FROM_NAME = os.getenv('GMAIL_SENDER_NAME', 'Winal Drug Shop')
 
 # Environment variables
-SENDER_EMAIL = os.getenv('GMAIL_SENDER')
-SENDER_NAME = os.getenv('GMAIL_SENDER_NAME', 'Winal Drug Shop')
 CREDENTIALS_PATH = os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials.json')
 TOKEN_PATH = os.getenv('GMAIL_TOKEN_PATH', 'token.json')
 
@@ -346,4 +345,148 @@ def send_welcome_email(email, name):
         subject="Welcome to Winal Drug Shop!",
         html_content=html_content,
         text_content=plain_content
-    ) 
+    )
+
+def send_order_confirmation(email, order_details):
+    """
+    Send an order confirmation email to the customer
+    
+    Args:
+        email (str): Customer's email address
+        order_details (dict): Dictionary containing order information including:
+            - customer_name: Name of the customer
+            - order_id: Unique order identifier
+            - total: Total amount of the order
+            - date: Order date
+            - items: List of items in the order
+            
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    try:
+        # Extract data from order details
+        customer_name = order_details.get('customer_name', 'Valued Customer')
+        order_id = order_details.get('order_id', 'Unknown')
+        total = order_details.get('total', 0.00)
+        order_date = order_details.get('date', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        items = order_details.get('items', [])
+        
+        # Build items HTML table
+        items_html = ""
+        items_text = ""
+        
+        for item in items:
+            name = item.get('name', 'Unknown item')
+            quantity = item.get('quantity', 1)
+            price = item.get('price', 0.00)
+            item_total = price * quantity
+            
+            items_html += f"""
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">{name}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e0e0e0; text-align: center;">{quantity}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e0e0e0; text-align: right;">${price:.2f}</td>
+                <td style="padding: 8px; border-bottom: 1px solid #e0e0e0; text-align: right;">${item_total:.2f}</td>
+            </tr>
+            """
+            
+            items_text += f"- {name} (Qty: {quantity}) @ ${price:.2f} each = ${item_total:.2f}\n"
+        
+        # Create HTML email content
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #2196F3;">Winal Drug Shop</h2>
+                <h3>Order Confirmation</h3>
+            </div>
+            
+            <div>
+                <p>Dear {customer_name},</p>
+                <p>Thank you for your order. Below are your order details:</p>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                    <p><strong>Order ID:</strong> {order_id}</p>
+                    <p><strong>Date:</strong> {order_date}</p>
+                </div>
+                
+                <h4>Order Summary</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #e0e0e0;">Item</th>
+                            <th style="padding: 8px; text-align: center; border-bottom: 2px solid #e0e0e0;">Quantity</th>
+                            <th style="padding: 8px; text-align: right; border-bottom: 2px solid #e0e0e0;">Price</th>
+                            <th style="padding: 8px; text-align: right; border-bottom: 2px solid #e0e0e0;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items_html}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="padding: 8px; text-align: right; border-top: 2px solid #e0e0e0;"><strong>Total:</strong></td>
+                            <td style="padding: 8px; text-align: right; border-top: 2px solid #e0e0e0;"><strong>${total:.2f}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                
+                <p style="margin-top: 20px;">If you have any questions about your order, please contact us.</p>
+                <p>Thank you for shopping with Winal Drug Shop!</p>
+                <p>Best regards,<br>The Winal Drug Shop Team</p>
+                
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+                <p style="font-size: 12px; color: #757575; text-align: center;">
+                    &copy; {datetime.now().year} Winal Drug Shop. All rights reserved.
+                </p>
+            </div>
+        </div>
+        """
+        
+        # Create plain text content as fallback
+        plain_content = f"""
+        Winal Drug Shop - Order Confirmation
+        
+        Dear {customer_name},
+        
+        Thank you for your order. Below are your order details:
+        
+        Order ID: {order_id}
+        Date: {order_date}
+        
+        Order Summary:
+        {items_text}
+        
+        Total: ${total:.2f}
+        
+        If you have any questions about your order, please contact us.
+        
+        Thank you for shopping with Winal Drug Shop!
+        
+        Best regards,
+        The Winal Drug Shop Team
+        
+        © {datetime.now().year} Winal Drug Shop. All rights reserved.
+        """
+        
+        # If in development mode, just print the email
+        if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('TESTING'):
+            print("\n=== ORDER CONFIRMATION EMAIL (DEV MODE) ===")
+            print(f"To: {email}")
+            print(f"Subject: Order Confirmation - #{order_id}")
+            print(f"Order Total: ${total:.2f}")
+            print("=======================================\n")
+            return True
+        
+        # Send the actual email
+        return send_email(
+            to=email,
+            subject=f"Winal Drug Shop - Order Confirmation #{order_id}",
+            html_content=html_content,
+            text_content=plain_content
+        )
+        
+    except Exception as e:
+        logger.error(f"Error sending order confirmation email: {e}")
+        if hasattr(current_app, 'logger'):
+            current_app.logger.error(f"Error sending order confirmation email: {e}")
+        return False 
