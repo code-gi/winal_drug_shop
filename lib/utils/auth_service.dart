@@ -4,16 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
 class AuthService {
-  // Base URL for the Flask backend API - now hosted on Render.com
-  final String baseUrl = 'https://winal-backend.onrender.com';
-
-  // Alternative server URLs to try if the primary one fails
-  final List<String> fallbackUrls = [
+  // Base URLs for the Flask backend API with fallbacks
+  final List<String> baseUrls = [
     'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'https://winaldrugshop-backend.onrender.com', // Alternative cloud URL
     'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
     'http://localhost:5000', // Local development
     'http://10.0.2.2:5000' // Android emulator to host loopback
   ];
+  // Current working base URL
+  String _currentBaseUrl =
+      'https://winal-backend.onrender.com'; // Default to primary
+
+  // Getter for the current base URL
+  String get baseUrl => _currentBaseUrl;
 
   static const String TOKEN_KEY = 'auth_token';
 
@@ -35,6 +39,38 @@ class AuthService {
     await prefs.remove(TOKEN_KEY);
   }
 
+  // Try to find a working server
+  Future<String> _getWorkingBaseUrl() async {
+    print('📱 AUTH SERVICE DEBUG: Finding a working server...');
+
+    for (String url in baseUrls) {
+      try {
+        print('📱 AUTH SERVICE DEBUG: Trying server URL: $url');
+        final response = await http.get(
+          Uri.parse('$url/api/auth/token-debug'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(
+            seconds: 3)); // Short timeout to quickly move to next server
+
+        // Status 401 means server is up but we're not authenticated, which is expected
+        if (response.statusCode == 401) {
+          print('📱 AUTH SERVICE DEBUG: Server is available at: $url');
+          _currentBaseUrl = url;
+          return url;
+        }
+      } catch (e) {
+        print(
+            '📱 AUTH SERVICE DEBUG: Server not available at $url: ${e.toString()}');
+        // Continue to next URL
+      }
+    }
+
+    // If all servers fail, use the default
+    print(
+        '📱 AUTH SERVICE DEBUG: No servers available, using default: $_currentBaseUrl');
+    return _currentBaseUrl;
+  }
+
   // Try to refresh an expired token
   Future<Map<String, dynamic>> tryRefreshToken() async {
     try {
@@ -47,7 +83,7 @@ class AuthService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/refresh'),
+        Uri.parse('$_currentBaseUrl/api/auth/refresh'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -86,7 +122,7 @@ class AuthService {
     // Verify token validity
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/auth/token-debug'),
+        Uri.parse('$_currentBaseUrl/api/auth/token-debug'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -107,7 +143,7 @@ class AuthService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/login'),
+        Uri.parse('$_currentBaseUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -157,7 +193,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/auth/register'),
+        Uri.parse('$_currentBaseUrl/api/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -197,15 +233,23 @@ class AuthService {
 
   // Request a password reset - this checks if the email exists before sending
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    print('📱 AUTH SERVICE DEBUG: Checking if email exists: $email');
+
     if (email.isEmpty) {
+      print('📱 AUTH SERVICE DEBUG: Email is empty');
       return {
         'success': false,
         'message': 'Email is required',
       };
     }
-    
+
     try {
+      // Get a working URL first
+      final baseUrl = await _getWorkingBaseUrl();
+
       // First, check if the email exists in the system
+      print(
+          '📱 AUTH SERVICE DEBUG: Sending check-email request to backend: $baseUrl');
       final response = await http.post(
         Uri.parse('$baseUrl/api/auth/check-email'),
         headers: {'Content-Type': 'application/json'},
@@ -213,15 +257,23 @@ class AuthService {
           'email': email,
         }),
       );
-      
+
+      print(
+          '📱 AUTH SERVICE DEBUG: check-email response status: ${response.statusCode}');
+      print(
+          '📱 AUTH SERVICE DEBUG: check-email response body: ${response.body}');
+
       final responseData = json.decode(response.body);
-      
+
       if (response.statusCode == 200) {
+        print('📱 AUTH SERVICE DEBUG: Email exists, can proceed with reset');
         return {
           'success': true,
           'message': 'Email exists, proceed with password reset',
         };
       } else {
+        print(
+            '📱 AUTH SERVICE DEBUG: Email check failed: ${responseData['message']}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Email not found or invalid',
@@ -229,22 +281,31 @@ class AuthService {
       }
     } catch (e) {
       developer.log('Email check error', error: e);
-      
+      print('📱 AUTH SERVICE DEBUG: Exception in email check: ${e.toString()}');
+
       // For development, assume email exists
+      print(
+          '📱 AUTH SERVICE DEBUG: Fallback to assuming email exists (dev mode)');
       return {
         'success': true,
         'message': 'Email exists (simulated), proceed with password reset',
       };
     }
   }
-  
+
   // Reset password with verification code
   Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String verificationCode,
     required String newPassword,
   }) async {
+    print('📱 AUTH SERVICE DEBUG: Resetting password for: $email');
     try {
+      // Get a working URL first
+      final baseUrl = await _getWorkingBaseUrl();
+
+      print(
+          '📱 AUTH SERVICE DEBUG: Sending reset-password request to backend: $baseUrl');
       final response = await http.post(
         Uri.parse('$baseUrl/api/auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
@@ -254,15 +315,23 @@ class AuthService {
           'new_password': newPassword,
         }),
       );
-      
+
+      print(
+          '📱 AUTH SERVICE DEBUG: reset-password response status: ${response.statusCode}');
+      print(
+          '📱 AUTH SERVICE DEBUG: reset-password response body: ${response.body}');
+
       final responseData = json.decode(response.body);
-      
+
       if (response.statusCode == 200) {
+        print('📱 AUTH SERVICE DEBUG: Password reset successful');
         return {
           'success': true,
           'message': 'Password reset successful',
         };
       } else {
+        print(
+            '📱 AUTH SERVICE DEBUG: Password reset failed: ${responseData['message']}');
         return {
           'success': false,
           'message': responseData['message'] ?? 'Failed to reset password',
@@ -270,8 +339,12 @@ class AuthService {
       }
     } catch (e) {
       developer.log('Password reset error', error: e);
-      
+      print(
+          '📱 AUTH SERVICE DEBUG: Exception in password reset: ${e.toString()}');
+
       // For development, simulate successful password reset
+      print(
+          '📱 AUTH SERVICE DEBUG: Fallback to simulating successful reset (dev mode)');
       return {
         'success': true,
         'message': 'Password reset successful (simulated)',
@@ -294,7 +367,7 @@ class AuthService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/api/users/me'),
+        Uri.parse('$_currentBaseUrl/api/users/me'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -308,7 +381,7 @@ class AuthService {
           // Retry with new token
           final newToken = await getToken();
           final retryResponse = await http.get(
-            Uri.parse('$baseUrl/api/users/me'),
+            Uri.parse('$_currentBaseUrl/api/users/me'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $newToken',
@@ -375,7 +448,7 @@ class AuthService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/api/auth/token-debug'),
+        Uri.parse('$_currentBaseUrl/api/auth/token-debug'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -421,7 +494,7 @@ class AuthService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/api/auth/profile'),
+        Uri.parse('$_currentBaseUrl/api/auth/profile'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -489,7 +562,7 @@ class AuthService {
       }
 
       final response = await http.put(
-        Uri.parse('$baseUrl/api/users/me'),
+        Uri.parse('$_currentBaseUrl/api/users/me'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

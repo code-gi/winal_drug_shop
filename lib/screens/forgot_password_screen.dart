@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../utils/email_service.dart';
+import '../services/email_service.dart';
 import '../utils/auth_service.dart';
+import '../utils/debug_helper.dart';
 import 'dart:developer' as developer;
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -26,6 +27,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
   
   // Create instances of services
   final AuthService _authService = AuthService();
+  final EmailService _emailService = EmailService();
+  
+  // Store verification code locally as it's no longer in the old service
+  String? _verificationCode;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -68,32 +73,60 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
+      print('📱 SCREEN DEBUG: Starting password reset for email: $email');
+      
       // First check if email exists
       final emailCheckResult = await _authService.requestPasswordReset(email);
+      print('📱 SCREEN DEBUG: Email check result: $emailCheckResult');
       
       if (!emailCheckResult['success']) {
         setState(() {
           errorMessage = emailCheckResult['message'] ?? 'Email not found or invalid';
           isLoading = false;
         });
+        print('📱 SCREEN DEBUG: Email check failed: $errorMessage');
         return;
       }
       
       // Send password reset email with verification code
-      final result = await EmailService.sendPasswordResetEmail(email: email);
+      print('📱 SCREEN DEBUG: Email exists, sending verification code');
+      
+      // Generate a verification code locally (6 digits)
+      _verificationCode = (100000 + (DateTime.now().millisecondsSinceEpoch % 900000)).toString();
+      print('📱 SCREEN DEBUG: Generated verification code: $_verificationCode');
+      
+      // Send password reset email
+      final result = await _emailService.sendPasswordResetEmail(
+        to: email,
+        name: null, // No name available in this context
+      );
       
       setState(() {
         isLoading = false;
-        if (result['success']) {
+        if (result) {
           isEmailSent = true;
           errorMessage = null;
+          print('📱 SCREEN DEBUG: Verification code sent successfully');
+          
+          // Show the verification code in development mode
+          if (_verificationCode != null) {
+            DebugHelper.showVerificationCode(context, email, _verificationCode!);
+          }
+          
+          // Show debug toast
+          DebugHelper.showDebugToast(context, 'Verification code sent. Check console for the code.');
         } else {
-          errorMessage = result['message'] ?? 'Failed to send verification code';
+          errorMessage = 'Failed to send verification code';
+          print('📱 SCREEN DEBUG: Failed to send verification code');
+          
+          // Show debug toast for error
+          DebugHelper.showDebugToast(context, 'Error: $errorMessage');
         }
       });
       
     } catch (e) {
       developer.log('Password reset error', error: e);
+      print('📱 SCREEN DEBUG: Exception in password reset: ${e.toString()}');
       setState(() {
         errorMessage = 'Network error. Please check your connection and try again.';
         isLoading = false;
@@ -118,19 +151,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
-      // Verify the code
-      final isValid = EmailService.verifyCode(email, code);
+      // Verify the code against our locally stored code
+      print('📱 SCREEN DEBUG: Verifying code: $code for email: $email');
+      final isValid = code == _verificationCode;
+      print('📱 SCREEN DEBUG: Code verification result: $isValid');
       
       setState(() {
         isLoading = false;
         if (isValid) {
           isCodeVerified = true;
           errorMessage = null;
+          print('📱 SCREEN DEBUG: Code verified successfully');
         } else {
           errorMessage = 'Invalid verification code. Please try again.';
+          print('📱 SCREEN DEBUG: Invalid verification code');
         }
       });
     } catch (e) {
+      print('📱 SCREEN DEBUG: Exception in code verification: ${e.toString()}');
       setState(() {
         errorMessage = 'Failed to verify code. Please try again.';
         isLoading = false;
@@ -171,6 +209,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     });
 
     try {
+      print('📱 SCREEN DEBUG: Resetting password for email: $email');
+      
       // Call the reset password API
       final result = await _authService.resetPassword(
         email: email,
@@ -178,13 +218,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         newPassword: newPassword,
       );
       
+      print('📱 SCREEN DEBUG: Password reset result: $result');
+      
       setState(() {
         isLoading = false;
       });
       
       if (result['success']) {
+        print('📱 SCREEN DEBUG: Password reset successful');
+        
         // Clear the verification code after successful reset
-        EmailService.clearVerificationCode(email);
+        _verificationCode = null;
         
         // Show success dialog
         if (mounted) {
@@ -207,11 +251,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           );
         }
       } else {
+        print('📱 SCREEN DEBUG: Password reset failed: ${result['message']}');
         setState(() {
           errorMessage = result['message'] ?? 'Failed to reset password. Please try again.';
         });
       }
     } catch (e) {
+      print('📱 SCREEN DEBUG: Exception in password reset: ${e.toString()}');
       setState(() {
         errorMessage = 'An error occurred. Please try again.';
         isLoading = false;

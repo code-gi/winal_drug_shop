@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/screens/login_screen.dart';
-import 'package:winal_front_end/utils/email_service.dart';
+import 'package:winal_front_end/services/email_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -24,6 +24,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   // State for password visibility
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  // Create an instance of EmailService
+  final EmailService _emailService = EmailService();
 
   @override
   Widget build(BuildContext context) {
@@ -221,16 +224,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (success) {
         // Send welcome email
         try {
-          final emailResult = await EmailService.sendLocalWelcomeEmail(
-            name: _fullNameController.text,
-            email: _emailController.text,
+          final success = await _emailService.sendTestEmail(
+            to: _emailController.text,
+            subject: 'Welcome to Winal Drug Shop!',
+            content: 'Thank you for signing up, ${_fullNameController.text}!',
           );
 
-          if (emailResult['success']) {
+          if (success) {
             print(
                 'Welcome email sent successfully to ${_emailController.text}');
           } else {
-            print('Failed to send welcome email: ${emailResult['message']}');
+            print('Failed to send welcome email');
           }
         } catch (e) {
           print('Error sending welcome email: $e');

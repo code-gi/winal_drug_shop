@@ -61,6 +61,7 @@ def create_app(config_name='default'):
         from .routes.farm_activities import bp as farm_activities_bp
         from .routes.appointments import bp as appointments_bp
         from .routes.admin import admin_bp
+        from .routes.notifications import notifications_bp
         
         print("All blueprints imported successfully")
         
@@ -74,7 +75,8 @@ def create_app(config_name='default'):
             (seed_bp, '/api/seed'),
             (orders_bp, '/api/orders'),
             (appointments_bp, '/api'),
-            (admin_bp, '/api/admin')
+            (admin_bp, '/api/admin'),
+            (notifications_bp, '/api/notifications')
         ]
         
         for blueprint, url_prefix in blueprints:

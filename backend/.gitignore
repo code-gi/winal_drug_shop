@@ -65,3 +65,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
+credentials.json
+token.json
+token.pickle
+*.json
