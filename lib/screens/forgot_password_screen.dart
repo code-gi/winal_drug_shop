@@ -104,20 +104,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         if (emailResult['success']) {
           isEmailSent = true;
           errorMessage = null;
-          print('📱 SCREEN DEBUG: Verification code sent successfully');
-
-          // Use the backend's verification code if provided (for development mode)
+          print('📱 SCREEN DEBUG: Verification code sent successfully');          // Use the backend's verification code if provided (for development mode)
           if (emailResult.containsKey('code') && emailResult['code'] != null) {
             _verificationCode = emailResult['code'];
             print(
                 '📱 SCREEN DEBUG: Using backend verification code: $_verificationCode');
           }
 
-          // Show the verification code in development mode
+          // Log the verification code in console for development purposes
           if (_verificationCode != null) {
-            DebugHelper.showVerificationCode(
-                context, email, _verificationCode!);
-            // Also print in large format for easy viewing
+            // Only log to console, no UI popup
             print('\n\n');
             print('=============================================');
             print('🔑 VERIFICATION CODE FOR $email:');
@@ -125,27 +121,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             print('=============================================');
             print('\n\n');
           }
-
-          // Show debug toast
-          DebugHelper.showDebugToast(context,
-              'Verification code sent. Check your email and console for the code.');
         } else {
           errorMessage =
               emailResult['message'] ?? 'Failed to send verification code';
           print(
               '📱 SCREEN DEBUG: Failed to send verification code: $errorMessage');
 
-          // Even though the email failed, we can still use the local verification code
-          print('\n\n');
-          print('=============================================');
-          print('⚠️ EMAIL FAILED BUT YOU CAN STILL USE THIS CODE:');
-          print('🔑 $_verificationCode');
-          print('=============================================');
-          print('\n\n');
-
-          // Show debug toast for error
-          DebugHelper.showDebugToast(context,
-              'Email failed, but you can still use the local verification code. Check console.');
+          // Even though the email failed, log any available verification code
+          if (_verificationCode != null) {
+            print('\n\n');
+            print('=============================================');
+            print('⚠️ EMAIL FAILED BUT YOU CAN STILL USE THIS CODE:');
+            print('🔑 $_verificationCode');
+            print('=============================================');
+            print('\n\n');
+          }
         }
       });
     } catch (e) {
