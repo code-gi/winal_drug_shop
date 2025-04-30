@@ -90,21 +90,23 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
       final appointmentDateTime = _parseDateTime(
           appointment.appointmentDate, appointment.appointmentTime);
       final status = appointment.status.toLowerCase();
-      final isPastOrPresent = appointmentDateTime.isBefore(now) ||
-          appointmentDateTime.isAtSameMomentAs(now);
+      // Check if appointment is in the past (strictly before now)
+      final isPast = appointmentDateTime.isBefore(now);
       final isCompletedOrCancelled =
           status == 'completed' || status == 'cancelled';
 
       if (_showUpcoming) {
-        // Show in upcoming tab only if:
-        // 1. The appointment is in the future AND
-        // 2. The status is either pending or confirmed
-        return !isPastOrPresent && !isCompletedOrCancelled;
+        // Show in upcoming tab if:
+        // 1. The appointment is not in the past (it's today or in the future) AND
+        // 2. The status is not completed or cancelled
+        return (!isPast || appointmentDateTime.day == now.day) &&
+            !isCompletedOrCancelled;
       } else {
         // Show in past tab if:
-        // 1. The appointment is in the past/present OR
+        // 1. The appointment is in the past (before today) OR
         // 2. The status is completed or cancelled
-        return isPastOrPresent || isCompletedOrCancelled;
+        return (isPast && appointmentDateTime.day != now.day) ||
+            isCompletedOrCancelled;
       }
     }).toList();
   }
@@ -334,7 +336,8 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                                     child: Text(
                                       'Book a service now',
                                       style: TextStyle(
-                                        color: const Color.fromARGB(255, 242, 251, 255),
+                                        color: const Color.fromARGB(
+                                            255, 242, 251, 255),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -504,8 +507,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                     _showCancelConfirmation(appointment.id);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 90, 23, 19),
+                    backgroundColor: const Color(0xFF9E2A2B),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14),
+                    elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -533,8 +538,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 5, 102, 102),
+                    backgroundColor: const Color(0xFF1976D2),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 14),
+                    elevation: 3,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -600,8 +607,13 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
           'Are you sure you want to cancel this appointment? This action cannot be undone.',
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1976D2), // Nice bluish color
+              foregroundColor: Colors.white,
+              elevation: 2,
+            ),
             child: Text('No, Keep It'),
           ),
           ElevatedButton(
@@ -610,7 +622,10 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
               _cancelAppointment(appointmentId);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor:
+                  const Color(0xFF9E2A2B), // Same red as cancel button
+              foregroundColor: Colors.white,
+              elevation: 2,
             ),
             child: Text('Yes, Cancel'),
           ),

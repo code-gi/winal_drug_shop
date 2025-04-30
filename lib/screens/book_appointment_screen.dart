@@ -269,7 +269,8 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             ElevatedButton(
               onPressed: isLoading ? null : _bookAppointment,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: const Color(0xFF1976D2),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
