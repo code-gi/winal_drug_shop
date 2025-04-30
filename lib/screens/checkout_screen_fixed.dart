@@ -9,9 +9,7 @@ import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/widgets/simple_map_placeholder.dart';
 import 'package:winal_front_end/screens/delivery_map_screen.dart';
 import 'package:winal_front_end/widgets/place_search_field.dart';
-import 'package:winal_front_end/utils/distance_service.dart';
 import 'dart:async';
-import 'dart:math'; // Add this import for min/max functions
 import 'dart:developer' as developer;
 
 class CheckoutScreen extends StatefulWidget {
@@ -37,13 +35,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ];
   final TextEditingController _whereToController = TextEditingController();
   final TextEditingController _whereFromController = TextEditingController();
-  double deliveryFee =
-      5000; // Base delivery fee, will be updated based on location
+  final double deliveryFee = 5000;
   bool _showMap = false; // Control map visibility
-
-  // Variables for location-based delivery fee calculation
-  LatLng? _deliveryLocation;
-  double _deliveryDistance = 0.0;
 
   // Google Maps variables - retained for compatibility but not actively used
   static const LatLng _winalDrugShop =
@@ -69,87 +62,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _whereToController.dispose();
     _whereFromController.dispose();
     super.dispose();
-  }
-
-  // Update the method to be async
-  Future<void> _calculateDeliveryFee(String address) async {
-    if (address.isEmpty) {
-      setState(() {
-        _deliveryDistance = 0.0;
-        deliveryFee = DistanceService.minimumDeliveryFee.toDouble();
-      });
-      return;
-    }
-
-    try {
-      developer.log('Starting delivery fee calculation for: $address',
-          name: 'CheckoutScreen');
-
-      // First check if this is a known location where we have a pre-defined distance
-      double knownDistance = DistanceService.getKnownDistance(address);
-
-      // Set initial distance from known locations
-      double estimatedDistance = knownDistance;
-
-      // Try to get coordinates if it's not a well-known location or we want more accuracy
-      if (knownDistance == 5.0) {
-        // Default return value means we don't have this in our known locations
-        // Try to get actual coordinates from the address
-        LatLng? coordinates =
-            await DistanceService.getCoordinatesFromAddress(address);
-
-        // If we got coordinates, calculate actual distance
-        if (coordinates != null) {
-          _deliveryLocation = coordinates;
-
-          // Get actual distance using coordinates
-          estimatedDistance = await DistanceService.getDistanceFromCoordinates(
-              _winalDrugShop, coordinates);
-
-          developer.log(
-              'Got coordinates and calculated distance: ${estimatedDistance.toStringAsFixed(2)} km',
-              name: 'CheckoutScreen');
-        } else {
-          developer.log(
-              'Could not get coordinates, using estimated distance: ${estimatedDistance.toStringAsFixed(2)} km',
-              name: 'CheckoutScreen');
-        }
-      } else {
-        developer.log(
-            'Using known distance for location: ${estimatedDistance.toStringAsFixed(2)} km',
-            name: 'CheckoutScreen');
-      }
-
-      // Instead of calculating the fee here, use the DistanceService directly
-      final calculatedFee = await DistanceService.calculateDeliveryFee(
-        deliveryAddress: address,
-        deliveryLocation: _deliveryLocation,
-        storeLocation: _winalDrugShop,
-      );
-
-      // Update state with the new values
-      setState(() {
-        _deliveryDistance = estimatedDistance;
-        deliveryFee = calculatedFee.toDouble();
-
-        developer.log(
-          'Final delivery fee: $deliveryFee UGX for distance: ${_deliveryDistance.toStringAsFixed(2)} km',
-          name: 'CheckoutScreen',
-        );
-      });
-    } catch (e) {
-      developer.log(
-        'Error calculating delivery fee: $e',
-        name: 'CheckoutScreen',
-        error: e,
-      );
-
-      // Default in case of error - use minimum fee and standard distance
-      setState(() {
-        _deliveryDistance = 5.0;
-        deliveryFee = DistanceService.minimumDeliveryFee.toDouble();
-      });
-    }
   }
 
   @override
@@ -271,20 +183,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       );
                     },
                   ),
-                  const Divider(), // Subtotal
+                  const Divider(),
+                  // Subtotal
                   _buildOrderSummaryRow('Subtotal', 'UGX ${widget.totalPrice}'),
                   const SizedBox(height: 4),
-                  // Estimated distance
-                  _buildOrderSummaryRow(
-                      'Estimated Distance',
-                      _deliveryDistance > 0
-                          ? '${_deliveryDistance.toStringAsFixed(1)} km'
-                          : 'Not calculated'),
-
-                  const SizedBox(height: 4),
                   // Delivery fee
-                  _buildOrderSummaryRow(
-                      'Delivery Fee', 'UGX ${deliveryFee.toInt()}'),
+                  _buildOrderSummaryRow('Delivery Fee', 'UGX $deliveryFee'),
                   const Divider(),
                   // Total
                   _buildOrderSummaryRow('Total', 'UGX $totalWithDelivery',
@@ -356,15 +260,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            PlaceSearchField(
-              apiKey: 'AIzaSyDDOFf3CEvnjrcTpXIa2lLV6sRuV3GpUoI',
+            TextField(
               controller: _whereToController,
-              hintText: 'Enter delivery address',
-              onPlaceSelected: (description, placeId) async {
+              decoration: InputDecoration(
+                hintText: 'Enter delivery address',
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (text) {
                 if (_showMap)
                   setState(() {}); // Refresh the map when address changes
-
-                await _calculateDeliveryFee(description); // Changed to await
               },
             ),
 
@@ -377,18 +286,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            PlaceSearchField(
-              apiKey: 'AIzaSyDDOFf3CEvnjrcTpXIa2lLV6sRuV3GpUoI',
+            TextField(
               controller: _whereFromController,
-              hintText: 'Enter pickup address',
-              onPlaceSelected: (description, placeId) async {
-                // Calculate delivery fee based on the selected location
-                await _calculateDeliveryFee(description); // Changed to await
-
-                // Refresh the map when address changes
-                if (_showMap) {
-                  setState(() {});
-                }
+              decoration: InputDecoration(
+                hintText: 'Enter pickup address',
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (text) {
+                if (_showMap)
+                  setState(() {}); // Refresh the map when address changes
               },
             ),
 

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 import 'package:winal_front_end/utils/order_service.dart';
+import 'package:winal_front_end/utils/distance_service.dart';
 import 'dart:developer' as developer;
 
 class OrderProvider extends ChangeNotifier {
@@ -259,13 +260,19 @@ class OrderProvider extends ChangeNotifier {
   }
 
   // Fallback method to create order locally if backend is unavailable
-  Order _createLocalOrder(
+  Future<Order> _createLocalOrder(
     List<CartItem> items,
     int totalAmount,
     String paymentMethod,
     String deliveryAddress,
-  ) {
+  ) async {
     print('🟠 OrderProvider: Creating local order fallback');
+
+    // Use a fixed delivery fee for now
+    const int deliveryFee = 5000; // Default delivery fee
+
+    print('🟠 OrderProvider: Using delivery fee: UGX $deliveryFee');
+
     final newOrder = Order(
       id: uuid.v4(),
       userEmail: _currentUserEmail!,
@@ -275,7 +282,7 @@ class OrderProvider extends ChangeNotifier {
       deliveryAddress: deliveryAddress,
       orderDate: DateTime.now(),
       status: 'pending',
-      deliveryFee: 5000, // Include delivery fee for local orders too
+      deliveryFee: deliveryFee, // Use the dynamically calculated fee
     );
 
     print('🟠 OrderProvider: Created local order with ID: ${newOrder.id}');
