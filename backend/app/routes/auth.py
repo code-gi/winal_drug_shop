@@ -8,6 +8,7 @@ from flask_jwt_extended import (
 )
 from app.models.user import User
 from app.schemas import UserSchema
+from app.schemas.schemas import LoginSchema, PasswordResetRequestSchema, PasswordResetSchema, PasswordResetWithCodeSchema
 from marshmallow import ValidationError
 from app import db
 from datetime import datetime, timedelta, timezone
@@ -15,6 +16,7 @@ import bcrypt
 import os
 from app.utils.validation import validate_email
 from app.utils.gmail_service import send_password_reset_email, verify_code, clear_verification_code
+from app.utils.error_formatting import format_validation_errors
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -31,7 +33,7 @@ def register():
         try:
             # Convert from "M/D/YYYY" to "YYYY-MM-DD"
             dob = datetime.strptime(data['date_of_birth'], '%m/%d/%Y')
-            data['date_of_birth'] = dob.strftime('%Y-%m-%d')
+            data['date_of_birth'] = dob.strftime('%Y-%m-%d')        
         except ValueError as e:
             return jsonify({
                 'message': 'Invalid date format',
@@ -39,17 +41,17 @@ def register():
             }), 400
 
     print(f"Registration request data: {data}")  # Debug print
-
+    
     # Get and validate data using UserSchema
     schema = UserSchema()
     try:
         validated_data = schema.load(data)
     except ValidationError as err:
         print(f"Validation error: {err.messages}")  # Debug print
-        return jsonify({
-            'message': 'Validation error',
-            'errors': err.messages
-        }), 400
+        
+        # Use the error formatting utility
+        formatted_response = format_validation_errors(err.messages)
+        return jsonify(formatted_response), 400
 
     # Check if user already exists
     if User.query.filter_by(email=validated_data['email']).first():
@@ -64,9 +66,11 @@ def register():
             last_name=validated_data['last_name'],
             phone_number=validated_data.get('phone_number'),
             date_of_birth=datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if 'date_of_birth' in data else None
-        )
+        )        
         db.session.add(new_user)
-        db.session.commit()        # Generate tokens
+        db.session.commit()
+        
+        # Generate tokens
         access_token = create_access_token(identity=new_user.id)
         refresh_token = create_refresh_token(identity=new_user.id)
 
@@ -95,13 +99,35 @@ def register():
 def login():
     """Login and receive JWT token"""
     data = request.get_json()
-    if not data or not data.get('email') or not data.get('password'):
-        return jsonify({"message": "Email and password required"}), 400
+      # Validate input data using LoginSchema
+    from app.schemas.schemas import LoginSchema
+    schema = LoginSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        formatted_response = format_validation_errors(err.messages)
+        return jsonify(formatted_response), 400
     
-    user = User.query.filter_by(email=data['email'].lower()).first()
+    user = User.query.filter_by(email=validated_data['email'].lower()).first()
     
-    if not user or not user.verify_password(data['password']):
-        return jsonify({"message": "Invalid credentials"}), 401
+    if not user or not user.verify_password(validated_data['password']):
+        return jsonify({
+            "message": "Invalid credentials",
+            "field_errors": {
+                "email": {
+                    "errors": ["Invalid email or password"],
+                    "requirement": "Please check your email and password",
+                    "field_name": "Email"
+                },
+                "password": {
+                    "errors": ["Invalid email or password"],
+                    "requirement": "Please check your email and password",
+                    "field_name": "Password"
+                }
+            },
+            "summary": "Login failed - please check your credentials",
+            "total_errors": 2
+        }), 401
     
     access_token = create_access_token(
         identity=user.id,
@@ -149,27 +175,38 @@ def refresh_token():
 
 @auth_bp.route('/check-email', methods=['POST'])
 def check_email():
+    """Check if email exists in the system"""
     try:
         data = request.get_json()
         print(f"Check-email request data: {data}")
         
-        if not data or not data.get('email'):
-            print("Missing email in request data")
-            return jsonify({"message": "Email is required"}), 400
+        # Validate input data using PasswordResetRequestSchema
+        schema = PasswordResetRequestSchema()
+        try:
+            validated_data = schema.load(data)
+        except ValidationError as err:
+            formatted_response = format_validation_errors(err.messages)
+            return jsonify(formatted_response), 400
         
-        email = data['email'].lower()
-        
-        # Validate email format
-        if not validate_email(email):
-            print(f"Invalid email format: {email}")
-            return jsonify({"message": "Invalid email format"}), 400
+        email = validated_data['email'].lower()
         
         # Check if user exists
         user = User.query.filter_by(email=email).first()
         
         if not user:
             print(f"Email not found: {email}")
-            return jsonify({"message": "Email not found"}), 404
+            return jsonify({
+                "message": "Email not found",
+                "field_errors": {
+                    "email": {
+                        "errors": ["Email not found"],
+                        "requirement": "Please enter a valid registered email address",
+                        "field_name": "Email"
+                    }
+                },
+                "summary": "Email not found in our system",
+                "total_errors": 1
+            }), 404
         
         print(f"Email exists: {email}")
         return jsonify({"message": "Email exists"}), 200
@@ -180,16 +217,18 @@ def check_email():
 
 @auth_bp.route('/request-reset', methods=['POST'])
 def request_reset():
+    """Request password reset"""
     data = request.get_json()
     
-    if not data or not data.get('email'):
-        return jsonify({"message": "Email is required"}), 400
+    # Validate input data using PasswordResetRequestSchema
+    schema = PasswordResetRequestSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        formatted_response = format_validation_errors(err.messages)
+        return jsonify(formatted_response), 400
     
-    email = data['email'].lower()
-    
-    # Validate email format
-    if not validate_email(email):
-        return jsonify({"message": "Invalid email format"}), 400
+    email = validated_data['email'].lower()
     
     # Check if user exists
     user = User.query.filter_by(email=email).first()
@@ -209,31 +248,56 @@ def request_reset():
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
+    """Reset password with verification code"""
     data = request.get_json()
     
-    if not data or not data.get('email') or not data.get('verification_code') or not data.get('new_password'):
-        return jsonify({"message": "Email, verification code and new password are required"}), 400
+    # Validate input data using PasswordResetWithCodeSchema
+    schema = PasswordResetWithCodeSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        formatted_response = format_validation_errors(err.messages)
+        return jsonify(formatted_response), 400
     
-    email = data['email'].lower()
-    verification_code = data['verification_code']
-    new_password = data['new_password']
-    
-    # Validate email format
-    if not validate_email(email):
-        return jsonify({"message": "Invalid email format"}), 400
+    email = validated_data['email'].lower()
+    verification_code = validated_data['verification_code']
+    new_password = validated_data['new_password']
     
     # Check if user exists
     user = User.query.filter_by(email=email).first()
     
     if not user:
-        return jsonify({"message": "Email not found"}), 404
-      # Verify the code
+        return jsonify({
+            "message": "User not found",
+            "field_errors": {
+                "email": {
+                    "errors": ["Email not found"],
+                    "requirement": "Please enter a valid registered email address",
+                    "field_name": "Email"
+                }
+            },
+            "summary": "Email not found in our system",
+            "total_errors": 1
+        }), 404
+    
+    # Verify the code
     try:
         print(f"Attempting to verify code: '{verification_code}' for email: '{email}'")
         is_valid = verify_code(email, verification_code)
         print(f"Code verification result: {is_valid}")
         if not is_valid:
-            return jsonify({"message": "Invalid or expired verification code"}), 400
+            return jsonify({
+                "message": "Invalid verification code",
+                "field_errors": {
+                    "verification_code": {
+                        "errors": ["Invalid or expired verification code"],
+                        "requirement": "Please enter the correct verification code sent to your email",
+                        "field_name": "Verification Code"
+                    }
+                },
+                "summary": "Verification code is invalid or expired",
+                "total_errors": 1
+            }), 400
         
         # Update password - use the User model's password setter
         user.password = new_password  # This will use the setter method which hashes the password

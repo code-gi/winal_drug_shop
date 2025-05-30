@@ -49,3 +49,21 @@ app.*.map.json
 credentials.json
 token.json
 token.pickle
+.apk
+.sh
+# iOS build artifacts
+/ios/Pods/
+/ios/Runner.xcworkspace/
+
+# Xcode related
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
+
+# vercel
+.vercel
+# markdown
+.markdownlintcache
+.md
+.json
+
+

@@ -1,0 +1,2 @@
+D:/projects/winal_drug_shop/android/app/.cxx/RelWithDebInfo/4i6h352h/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/projects/winal_drug_shop/android/app/.cxx/RelWithDebInfo/4i6h352h/armeabi-v7a/CMakeFiles/rebuild_cache.dir

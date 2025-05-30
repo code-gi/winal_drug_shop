@@ -51,21 +51,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       color: Colors.blue,
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Full Name Field
-                  TextFormField(
+                  const SizedBox(height: 20),                  // Full Name Field
+                  _buildFormField(
                     controller: _fullNameController,
-                    decoration: _buildInputDecoration("Full name"),
+                    hintText: "Full name",
+                    fieldKey: "first_name", // Backend uses first_name for validation
+                    authProvider: authProvider,
                     validator: (value) =>
                         value!.isEmpty ? "Enter your full name" : null,
                   ),
                   const SizedBox(height: 15),
 
                   // Email Field
-                  TextFormField(
+                  _buildFormField(
                     controller: _emailController,
-                    decoration: _buildInputDecoration("Email"),
+                    hintText: "Email",
+                    fieldKey: "email",
+                    authProvider: authProvider,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value!.isEmpty) {
@@ -81,9 +83,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 15),
 
                   // Mobile Number Field
-                  TextFormField(
+                  _buildFormField(
                     controller: _mobileNumberController,
-                    decoration: _buildInputDecoration("Mobile Number"),
+                    hintText: "Mobile Number",
+                    fieldKey: "phone_number",
+                    authProvider: authProvider,
                     keyboardType: TextInputType.phone,
                     validator: (value) =>
                         value!.isEmpty ? "Enter your mobile number" : null,
@@ -91,62 +95,105 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 15),
 
                   // Date of Birth Field with date picker
-                  TextFormField(
+                  _buildFormField(
                     controller: _dateOfBirthController,
-                    decoration:
-                        _buildInputDecoration("Date of Birth (DD/MM/YYYY)")
-                            .copyWith(
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.calendar_today,
-                            color: Colors.grey),
-                        onPressed: () => _selectDate(context),
-                      ),
-                    ),
+                    hintText: "Date of Birth (DD/MM/YYYY)",
+                    fieldKey: "date_of_birth",
+                    authProvider: authProvider,
                     readOnly: true,
                     onTap: () => _selectDate(context),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today, color: Colors.grey),
+                      onPressed: () => _selectDate(context),
+                    ),
                     validator: (value) =>
                         value!.isEmpty ? "Enter your date of birth" : null,
                   ),
                   const SizedBox(height: 15),
 
                   // Password Field with visibility toggle
-                  TextFormField(
+                  _buildFormField(
                     controller: _passwordController,
-                    decoration: _buildInputDecoration("Password").copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
-                    ),
+                    hintText: "Password",
+                    fieldKey: "password",
+                    authProvider: authProvider,
                     obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     validator: (value) {
                       if (value!.isEmpty) {
                         return "Enter a password";
                       }
-                      if (value.length < 6) {
-                        return "Password must be at least 6 characters";
+                      if (value.length < 8) {
+                        return "Password must be at least 8 characters";
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: 30),
-
-                  // Error message
-                  if (authProvider.errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 15),
-                      child: Text(
-                        authProvider.errorMessage!,
-                        style: const TextStyle(color: Colors.red),
+                  const SizedBox(height: 30),                  // Error message and field errors summary
+                  if (authProvider.errorMessage != null || authProvider.fieldErrors != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 15),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        border: Border.all(color: Colors.red.shade200),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (authProvider.errorMessage != null)
+                            Text(
+                              authProvider.errorMessage!,
+                              style: TextStyle(
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          if (authProvider.fieldErrors != null) ...[
+                            if (authProvider.errorMessage != null)
+                              const SizedBox(height: 8),
+                            Text(
+                              "Please fix the following issues:",
+                              style: TextStyle(
+                                color: Colors.red.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ...authProvider.fieldErrors!.entries.map((entry) {
+                              final fieldName = entry.value['field_name'] ?? entry.key;
+                              final errors = entry.value['errors'] as List<dynamic>? ?? [];
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 8, top: 2),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("• ", style: TextStyle(color: Colors.red.shade600)),
+                                    Expanded(
+                                      child: Text(
+                                        "$fieldName: ${errors.isNotEmpty ? errors.first : 'Invalid'}",
+                                        style: TextStyle(color: Colors.red.shade600),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ],
                       ),
                     ),
 
@@ -301,7 +348,78 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _dateOfBirthController.text =
             "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
       });
-    }
+    }  }
+
+  // Helper method to build form fields with backend error support
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String hintText,
+    required String fieldKey,
+    required AuthProvider authProvider,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    Widget? suffixIcon,
+  }) {
+    final hasBackendError = authProvider.hasFieldError(fieldKey);
+    final backendError = authProvider.getFieldError(fieldKey);
+    final fieldRequirement = authProvider.getFieldRequirement(fieldKey);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          decoration: _buildInputDecoration(hintText).copyWith(
+            suffixIcon: suffixIcon,
+            errorBorder: hasBackendError
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  )
+                : null,
+            focusedErrorBorder: hasBackendError
+                ? OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                  )
+                : null,
+          ),
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          readOnly: readOnly,
+          onTap: onTap,
+          validator: validator,
+        ),
+        if (hasBackendError && backendError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 5, left: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  backendError,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+                if (fieldRequirement != null)
+                  Text(
+                    fieldRequirement,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   @override

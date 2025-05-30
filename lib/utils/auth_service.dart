@@ -166,11 +166,12 @@ class AuthService {
         return {
           'success': true,
           'data': responseData,
-        };
-      } else {
+        };      } else {
         return {
           'success': false,
           'message': responseData['message'] ?? 'Login failed',
+          'field_errors': responseData['field_errors'],
+          'summary': responseData['summary'],
         };
       }
     } catch (e) {
@@ -211,11 +212,12 @@ class AuthService {
         return {
           'success': true,
           'data': responseData,
-        };
-      } else {
+        };      } else {
         return {
           'success': false,
           'message': responseData['message'] ?? 'Registration failed',
+          'field_errors': responseData['field_errors'],
+          'summary': responseData['summary'],
         };
       }
     } catch (e) {
