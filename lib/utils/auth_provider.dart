@@ -7,6 +7,7 @@ class AuthProvider extends ChangeNotifier {
   // User authentication state
   bool _isAuthenticated = false;
   String? _errorMessage;
+  Map<String, dynamic>? _fieldErrors;
   Map<String, dynamic>? _userData;
   String? _token;
   bool _isLoading = false;
@@ -14,9 +15,44 @@ class AuthProvider extends ChangeNotifier {
   // Getters
   bool get isAuthenticated => _isAuthenticated;
   String? get errorMessage => _errorMessage;
+  Map<String, dynamic>? get fieldErrors => _fieldErrors;
   Map<String, dynamic>? get userData => _userData;
   String? get token => _token;
   bool get isLoading => _isLoading;
+
+  // Check if a specific field has errors
+  bool hasFieldError(String fieldName) {
+    return _fieldErrors?.containsKey(fieldName) ?? false;
+  }
+
+  // Get error message for a specific field
+  String? getFieldError(String fieldName) {
+    if (_fieldErrors == null || !_fieldErrors!.containsKey(fieldName)) {
+      return null;
+    }
+    
+    final fieldError = _fieldErrors![fieldName];
+    if (fieldError is Map<String, dynamic> && fieldError.containsKey('errors')) {
+      final errors = fieldError['errors'] as List<dynamic>;
+      return errors.isNotEmpty ? errors.first.toString() : null;
+    }
+    
+    return fieldError.toString();
+  }
+
+  // Get requirement message for a specific field
+  String? getFieldRequirement(String fieldName) {
+    if (_fieldErrors == null || !_fieldErrors!.containsKey(fieldName)) {
+      return null;
+    }
+    
+    final fieldError = _fieldErrors![fieldName];
+    if (fieldError is Map<String, dynamic> && fieldError.containsKey('requirement')) {
+      return fieldError['requirement'].toString();
+    }
+    
+    return null;
+  }
 
   // Constructor - check if user is already logged in
   AuthProvider() {
@@ -38,11 +74,11 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-
   // Login method
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
+    _fieldErrors = null;
     notifyListeners();
 
     final result = await _authService.login(email, password);
@@ -53,13 +89,15 @@ class AuthProvider extends ChangeNotifier {
       _token = result['token'];
     } else {
       _errorMessage = result['message'];
+      if (result.containsKey('field_errors')) {
+        _fieldErrors = result['field_errors'];
+      }
     }
 
     _isLoading = false;
     notifyListeners();
     return result['success'];
   }
-
   // Register method
   Future<bool> register({
     required String email,
@@ -71,6 +109,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _isLoading = true;
     _errorMessage = null;
+    _fieldErrors = null;
     notifyListeners();
 
     final result = await _authService.register(
@@ -86,17 +125,20 @@ class AuthProvider extends ChangeNotifier {
 
     if (!result['success']) {
       _errorMessage = result['message'];
+      if (result.containsKey('field_errors')) {
+        _fieldErrors = result['field_errors'];
+      }
     }
 
     notifyListeners();
     return result['success'];
   }
-
   // Logout method
   Future<void> logout() async {
     await _authService.logout();
     _isAuthenticated = false;
     _userData = null;
+    _fieldErrors = null;
     notifyListeners();
   }
 
@@ -151,10 +193,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     return result['success'];
   }
-
   // Clear error message
   void clearError() {
     _errorMessage = null;
+    _fieldErrors = null;
     notifyListeners();
   }
 }

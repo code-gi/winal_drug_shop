@@ -59,7 +59,7 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text('Farm Activities'),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color.fromARGB(255, 0, 62, 70),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -144,7 +144,7 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.green,
+                                        color: Color.fromARGB(255, 0, 44, 54),
                                       ),
                                     ),
                                     Text(

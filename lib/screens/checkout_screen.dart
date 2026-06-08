@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:winal_front_end/screens/dynamic_medications.dart';
 import 'package:winal_front_end/models/cart_item.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/providers/cart_provider.dart';
 import 'package:winal_front_end/providers/order_provider.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
-import 'dart:async'; // Add this import for Timer
+import 'package:winal_front_end/widgets/simple_map_placeholder.dart';
+import 'package:winal_front_end/screens/delivery_map_screen.dart';
+import 'package:winal_front_end/widgets/place_search_field.dart';
+import 'package:winal_front_end/utils/distance_service.dart';
+import 'dart:async';
+import 'dart:math'; // Add this import for min/max functions
 import 'dart:developer' as developer;
 
 class CheckoutScreen extends StatefulWidget {
@@ -33,11 +37,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   ];
   final TextEditingController _whereToController = TextEditingController();
   final TextEditingController _whereFromController = TextEditingController();
-  final double deliveryFee = 5000;
+  double deliveryFee =
+      5000; // Base delivery fee, will be updated based on location
   bool _showMap = false; // Control map visibility
 
-  // Google Maps variables
-  GoogleMapController? _mapController;
+  // Variables for location-based delivery fee calculation
+  LatLng? _deliveryLocation;
+  double _deliveryDistance = 0.0;
+
+  // Google Maps variables - retained for compatibility but not actively used
   static const LatLng _winalDrugShop =
       LatLng(0.3025, 32.5539); // Approximate coordinates for Nateete, Kampala
   final Set<Marker> _markers = {};
@@ -60,21 +68,87 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void dispose() {
     _whereToController.dispose();
     _whereFromController.dispose();
-    _mapController?.dispose();
     super.dispose();
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(_winalDrugShop, 15),
-    );
-  }
+  // Update the method to be async
+  Future<void> _calculateDeliveryFee(String address) async {
+    if (address.isEmpty) {
+      setState(() {
+        _deliveryDistance = 0.0;
+        deliveryFee = DistanceService.minimumDeliveryFee.toDouble();
+      });
+      return;
+    }
 
-  Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    try {
+      developer.log('Starting delivery fee calculation for: $address',
+          name: 'CheckoutScreen');
+
+      // First check if this is a known location where we have a pre-defined distance
+      double knownDistance = DistanceService.getKnownDistance(address);
+
+      // Set initial distance from known locations
+      double estimatedDistance = knownDistance;
+
+      // Try to get coordinates if it's not a well-known location or we want more accuracy
+      if (knownDistance == 5.0) {
+        // Default return value means we don't have this in our known locations
+        // Try to get actual coordinates from the address
+        LatLng? coordinates =
+            await DistanceService.getCoordinatesFromAddress(address);
+
+        // If we got coordinates, calculate actual distance
+        if (coordinates != null) {
+          _deliveryLocation = coordinates;
+
+          // Get actual distance using coordinates
+          estimatedDistance = await DistanceService.getDistanceFromCoordinates(
+              _winalDrugShop, coordinates);
+
+          developer.log(
+              'Got coordinates and calculated distance: ${estimatedDistance.toStringAsFixed(2)} km',
+              name: 'CheckoutScreen');
+        } else {
+          developer.log(
+              'Could not get coordinates, using estimated distance: ${estimatedDistance.toStringAsFixed(2)} km',
+              name: 'CheckoutScreen');
+        }
+      } else {
+        developer.log(
+            'Using known distance for location: ${estimatedDistance.toStringAsFixed(2)} km',
+            name: 'CheckoutScreen');
+      }
+
+      // Instead of calculating the fee here, use the DistanceService directly
+      final calculatedFee = await DistanceService.calculateDeliveryFee(
+        deliveryAddress: address,
+        deliveryLocation: _deliveryLocation,
+        storeLocation: _winalDrugShop,
+      );
+
+      // Update state with the new values
+      setState(() {
+        _deliveryDistance = estimatedDistance;
+        deliveryFee = calculatedFee.toDouble();
+
+        developer.log(
+          'Final delivery fee: $deliveryFee UGX for distance: ${_deliveryDistance.toStringAsFixed(2)} km',
+          name: 'CheckoutScreen',
+        );
+      });
+    } catch (e) {
+      developer.log(
+        'Error calculating delivery fee: $e',
+        name: 'CheckoutScreen',
+        error: e,
+      );
+
+      // Default in case of error - use minimum fee and standard distance
+      setState(() {
+        _deliveryDistance = 5.0;
+        deliveryFee = DistanceService.minimumDeliveryFee.toDouble();
+      });
     }
   }
 
@@ -197,12 +271,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       );
                     },
                   ),
-                  const Divider(),
-                  // Subtotal
+                  const Divider(), // Subtotal
                   _buildOrderSummaryRow('Subtotal', 'UGX ${widget.totalPrice}'),
                   const SizedBox(height: 4),
+                  // Estimated distance
+                  _buildOrderSummaryRow(
+                      'Estimated Distance',
+                      _deliveryDistance > 0
+                          ? '${_deliveryDistance.toStringAsFixed(1)} km'
+                          : 'Not calculated'),
+
+                  const SizedBox(height: 4),
                   // Delivery fee
-                  _buildOrderSummaryRow('Delivery Fee', 'UGX $deliveryFee'),
+                  _buildOrderSummaryRow(
+                      'Delivery Fee', 'UGX ${deliveryFee.toInt()}'),
                   const Divider(),
                   // Total
                   _buildOrderSummaryRow('Total', 'UGX $totalWithDelivery',
@@ -211,9 +293,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
-
-            // Map section with a toggle to hide/show
+            const SizedBox(
+                height: 20), // Map section with a toggle to hide/show
             Row(
               children: [
                 const Expanded(
@@ -233,31 +314,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     });
                   },
                 ),
+                // Add a button to open the dedicated map screen
+                IconButton(
+                  icon: const Icon(Icons.fullscreen, color: Colors.blue),
+                  tooltip: 'View full map',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DeliveryMapScreen(
+                          pickupAddress: _whereFromController.text,
+                          deliveryAddress: _whereToController.text.isEmpty
+                              ? 'Please enter delivery address'
+                              : _whereToController.text,
+                          pickupLocation: _winalDrugShop,
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
 
-            // Map (shown conditionally)
+            // Map (shown conditionally) - Using our new SimpleMapPlaceholder
             if (_showMap) ...[
               const SizedBox(height: 12),
-              Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: GoogleMap(
-                    onMapCreated: _onMapCreated,
-                    initialCameraPosition: const CameraPosition(
-                      target: _winalDrugShop,
-                      zoom: 15,
-                    ),
-                    markers: _markers,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
-                  ),
-                ),
+              SimpleMapPlaceholder(
+                storeAddress: _whereFromController.text,
+                deliveryAddress: _whereToController.text.isNotEmpty
+                    ? _whereToController.text
+                    : null,
               ),
             ],
 
@@ -270,18 +356,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            TextField(
+            PlaceSearchField(
+              apiKey: 'AIzaSyDDOFf3CEvnjrcTpXIa2lLV6sRuV3GpUoI',
               controller: _whereToController,
-              decoration: InputDecoration(
-                hintText: 'Enter delivery address',
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              hintText: 'Enter delivery address',
+              onPlaceSelected: (description, placeId) async {
+                if (_showMap)
+                  setState(() {}); // Refresh the map when address changes
+
+                await _calculateDeliveryFee(description); // Changed to await
+              },
             ),
+
             const SizedBox(height: 16),
             const Text(
               'WHERE FROM?',
@@ -291,18 +377,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            TextField(
+            PlaceSearchField(
+              apiKey: 'AIzaSyDDOFf3CEvnjrcTpXIa2lLV6sRuV3GpUoI',
               controller: _whereFromController,
-              decoration: InputDecoration(
-                hintText: 'Enter pickup address',
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              hintText: 'Enter pickup address',
+              onPlaceSelected: (description, placeId) async {
+                // Calculate delivery fee based on the selected location
+                await _calculateDeliveryFee(description); // Changed to await
+
+                // Refresh the map when address changes
+                if (_showMap) {
+                  setState(() {});
+                }
+              },
             ),
+
             const SizedBox(height: 16),
             const Text(
               'PAYMENT METHOD',
@@ -336,263 +425,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  if (_whereToController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please enter delivery address')),
-                    );
-                    return;
-                  }
-                  if (_selectedPaymentMethod == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Please select a payment method')),
-                    );
-                    return;
-                  }
-
-                  // Get providers
-                  final cartProvider =
-                      Provider.of<CartProvider>(context, listen: false);
-                  final orderProvider =
-                      Provider.of<OrderProvider>(context, listen: false);
-                  final authProvider =
-                      Provider.of<AuthProvider>(context, listen: false);
-
-                  print(
-                      '🛒 CheckoutScreen: Placing order with ${widget.cart.length} items');
-                  print('🛒 CheckoutScreen: Total amount: $totalWithDelivery');
-                  print(
-                      '🛒 CheckoutScreen: Payment method: $_selectedPaymentMethod');
-                  print(
-                      '🛒 CheckoutScreen: Delivery address: ${_whereToController.text}');
-                  print(
-                      '🛒 CheckoutScreen: Auth status: ${authProvider.isAuthenticated ? 'Authenticated' : 'Not authenticated'}');
-
-                  // Show a loading indicator while processing
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (BuildContext context) {
-                      return const AlertDialog(
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text('Processing your order...'),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-
-                  // Create a timeout to prevent getting stuck indefinitely
-                  Timer? timeoutTimer;
-                  timeoutTimer = Timer(const Duration(seconds: 30), () {
-                    // Handle timeout case - close dialog and show error
-                    if (Navigator.canPop(context)) {
-                      Navigator.of(context).pop(); // Close the loading dialog
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Order processing timed out. Please try again.'),
-                        duration: Duration(seconds: 5),
-                      ),
-                    );
-                    print(
-                        '❌ CheckoutScreen: Order placement timed out after 30 seconds');
-                  });
-
-                  // Refresh authentication status to ensure it's current
-                  if (authProvider.isAuthenticated) {
-                    try {
-                      print(
-                          '🛒 CheckoutScreen: Starting order creation process...');
-                      // Create a new order
-                      final order = await orderProvider.createOrder(
-                        items: widget.cart,
-                        totalAmount: totalWithDelivery.toInt(),
-                        paymentMethod: _selectedPaymentMethod!,
-                        deliveryAddress: _whereToController.text,
-                      );
-
-                      // Cancel the timeout timer since we got a response
-                      timeoutTimer.cancel();
-                      print(
-                          '🛒 CheckoutScreen: Order creation completed with ID: ${order.id}');
-
-                      // Safety check if context is still valid
-                      if (!mounted) return;
-
-                      // Close the loading dialog if it's still showing
-                      if (Navigator.canPop(context)) {
-                        Navigator.of(context).pop();
-                      }
-
-                      if (order.id.startsWith('error')) {
-                        // Show error message if order creation fails
-                        print(
-                            '❌ CheckoutScreen: Order creation failed with error ID');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                                'Error connecting to server. Please try again.'),
-                            duration: Duration(seconds: 5),
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Only clear the cart after successful order creation
-                      print(
-                          '🛒 CheckoutScreen: Clearing cart after successful order');
-                      cartProvider.clearCart();
-
-                      // Show order success dialog
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: Colors.green, size: 28),
-                                SizedBox(width: 8),
-                                Text('Order Successful!'),
-                              ],
-                            ),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Your order has been placed successfully.',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Order #: ${order.id.length > 8 ? order.id.substring(0, 8) : order.id}',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Payment Method: $_selectedPaymentMethod',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Delivery Address: ${_whereToController.text}',
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Total Amount: UGX $totalWithDelivery',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  // Navigate to Orders page
-                                  Navigator.pushNamed(context, '/orders');
-                                },
-                                child: const Text('View Orders'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                  // Return to main screen after order
-                                  final userEmail =
-                                      authProvider.userData?['email'] ?? '';
-                                  final firstName =
-                                      authProvider.userData?['first_name'] ??
-                                          '';
-                                  final lastName =
-                                      authProvider.userData?['last_name'] ?? '';
-                                  final initials = firstName.isNotEmpty &&
-                                          lastName.isNotEmpty
-                                      ? '${firstName[0]}${lastName[0]}'
-                                      : '';
-
-                                  Navigator.pushNamedAndRemoveUntil(
-                                    context,
-                                    '/dashboard',
-                                    (route) => false,
-                                    arguments: {
-                                      'userEmail': userEmail,
-                                      'userInitials': initials,
-                                    },
-                                  );
-                                },
-                                child: const Text('Continue Shopping'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    } catch (error) {
-                      // Cancel the timeout timer
-                      timeoutTimer.cancel();
-
-                      // Safety check if context is still valid
-                      if (!mounted) return;
-
-                      // Close the loading dialog if it's still showing
-                      if (Navigator.canPop(context)) {
-                        Navigator.of(context).pop();
-                      }
-
-                      // Show detailed error message if order creation fails
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error placing order: $error'),
-                          duration: const Duration(seconds: 5),
-                          action: SnackBarAction(
-                            label: 'Retry',
-                            onPressed: () {
-                              // Retry order placement with the current total amount
-                              _placeOrder(cartProvider, orderProvider,
-                                  authProvider, totalWithDelivery.toInt());
-                            },
-                          ),
-                        ),
-                      );
-                    }
-                  } else {
-                    // Cancel the timeout timer
-                    timeoutTimer.cancel();
-
-                    // Safety check if context is still valid
-                    if (!mounted) return;
-
-                    // Close the loading dialog if it's still showing
-                    if (Navigator.canPop(context)) {
-                      Navigator.of(context).pop();
-                    }
-
-                    // Handle not authenticated case
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please log in to place an order'),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    // Navigate to login screen
-                    Navigator.of(context).pushNamed('/login');
-                  }
-                },
+                onPressed: () =>
+                    _handlePlaceOrder(context, totalWithDelivery.toInt()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -616,43 +455,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildOrderSummaryRow(String label, String value,
-      {bool isTotal = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: isTotal ? Colors.black : Colors.grey[700],
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _placeOrder(
-    CartProvider cartProvider,
-    OrderProvider orderProvider,
-    AuthProvider authProvider,
-    int totalAmount,
-  ) async {
-    // Get the current totalWithDelivery from the widget
-    final double totalWithDelivery = widget.totalPrice + deliveryFee;
-
-    print('🛒 _placeOrder: Retrying order placement with amount: $totalAmount');
-    print('🛒 _placeOrder: Payment method: $_selectedPaymentMethod');
-    print('🛒 _placeOrder: Delivery address: ${_whereToController.text}');
-
+  void _handlePlaceOrder(BuildContext context, int totalAmount) async {
+    // Validate inputs
     if (_whereToController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter delivery address')),
@@ -665,6 +469,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       return;
     }
+
+    // Get providers
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Log order information
+    print('🛒 CheckoutScreen: Placing order with ${widget.cart.length} items');
+    print('🛒 CheckoutScreen: Total amount: $totalAmount');
+    print('🛒 CheckoutScreen: Payment method: $_selectedPaymentMethod');
+    print('🛒 CheckoutScreen: Delivery address: ${_whereToController.text}');
+    print(
+        '🛒 CheckoutScreen: Auth status: ${authProvider.isAuthenticated ? 'Authenticated' : 'Not authenticated'}');
 
     // Show a loading indicator while processing
     showDialog(
@@ -697,13 +514,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           duration: Duration(seconds: 5),
         ),
       );
-      print('❌ _placeOrder: Order placement timed out after 30 seconds');
+      print('❌ CheckoutScreen: Order placement timed out after 30 seconds');
     });
 
     // Refresh authentication status to ensure it's current
     if (authProvider.isAuthenticated) {
       try {
-        print('🛒 _placeOrder: Creating order...');
+        print('🛒 CheckoutScreen: Starting order creation process...');
         // Create a new order
         final order = await orderProvider.createOrder(
           items: widget.cart,
@@ -714,7 +531,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         // Cancel the timeout timer since we got a response
         timeoutTimer.cancel();
-        print('🛒 _placeOrder: Order creation completed with ID: ${order.id}');
+        print(
+            '🛒 CheckoutScreen: Order creation completed with ID: ${order.id}');
 
         // Safety check if context is still valid
         if (!mounted) return;
@@ -726,7 +544,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         if (order.id.startsWith('error')) {
           // Show error message if order creation fails
-          print('❌ _placeOrder: Order creation failed with error ID');
+          print('❌ CheckoutScreen: Order creation failed with error ID');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Error connecting to server. Please try again.'),
@@ -737,7 +555,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
 
         // Only clear the cart after successful order creation
-        print('🛒 _placeOrder: Clearing cart after successful order');
+        print('🛒 CheckoutScreen: Clearing cart after successful order');
         cartProvider.clearCart();
 
         // Show order success dialog
@@ -842,9 +660,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             action: SnackBarAction(
               label: 'Retry',
               onPressed: () {
-                // Retry order placement with the current total amount
-                _placeOrder(cartProvider, orderProvider, authProvider,
-                    totalWithDelivery.toInt());
+                _handlePlaceOrder(context, totalAmount);
               },
             ),
           ),
@@ -872,5 +688,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Navigate to login screen
       Navigator.of(context).pushNamed('/login');
     }
+  }
+
+  Widget _buildOrderSummaryRow(String label, String value,
+      {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            color: isTotal ? Colors.black : Colors.grey[700],
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
   }
 }

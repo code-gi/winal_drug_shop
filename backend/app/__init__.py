@@ -51,7 +51,7 @@ def create_app(config_name='default'):
     print("\n=== Registering Blueprints ===")
     
     try:
-        print("Importing blueprints...")
+        print("Importing blueprints...")        
         from .routes.auth import auth_bp
         from .routes.users import users_bp
         from .routes.medications import medications_bp
@@ -61,10 +61,11 @@ def create_app(config_name='default'):
         from .routes.farm_activities import bp as farm_activities_bp
         from .routes.appointments import bp as appointments_bp
         from .routes.admin import admin_bp
+        from .routes.notifications import notifications_bp
+        from .routes.mail import mail_bp
         
         print("All blueprints imported successfully")
-        
-        # Register each blueprint and log it
+          # Register each blueprint and log it
         blueprints = [
             (auth_bp, '/api/auth'),
             (farm_activities_bp, '/api'),
@@ -74,7 +75,9 @@ def create_app(config_name='default'):
             (seed_bp, '/api/seed'),
             (orders_bp, '/api/orders'),
             (appointments_bp, '/api'),
-            (admin_bp, '/api/admin')
+            (admin_bp, '/api/admin'),
+            (notifications_bp, '/api/notifications'),
+            (mail_bp, '/api/mail')
         ]
         
         for blueprint, url_prefix in blueprints:

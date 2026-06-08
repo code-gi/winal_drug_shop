@@ -455,11 +455,13 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
                   disabledBackgroundColor: Colors.grey,
                 ),
                 child: Text(
-                  inStock ? 'Add to Cart' : 'Out of Stock',
-                  style: const TextStyle(
+                    inStock ? 'Add to Cart' : 'Out of Stock',
+                    style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                  ),
+                    color: Colors.white, // Set text color to white
+                    ),
+                  
                 ),
               ),
             ),

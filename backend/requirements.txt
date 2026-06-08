@@ -11,3 +11,18 @@ pytest==7.4.2
 pytest-flask==1.2.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9  # For PostgreSQL support
+
+# Gmail API dependencies
+google-api-python-client==2.88.0
+google-auth-httplib2==0.1.0
+google-auth-oauthlib==1.0.0
+
+SQLAlchemy==2.0.20
+
+mysqlclient==2.2.0
+pymysql==1.1.0
+
+gunicorn==21.2.0
+bcrypt==4.0.1
+Werkzeug==2.3.7
+pytest==7.4.2

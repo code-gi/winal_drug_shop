@@ -33,7 +33,6 @@ migrate_working_dir/
 .pub/
 /build/
 
-
 # Symbolication related
 app.*.symbols
 
@@ -44,67 +43,46 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/.cxx/
 
-# //backend
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
+# iOS build artifacts
+/ios/Pods/
+/ios/Runner.xcworkspace/
 
-# Flask
-instance/
-migrations/
-*.pyc
-.webassets-cache
-.env
-.flaskenv
+# Xcode related
+/ios/Flutter/Flutter.framework
+/ios/Flutter/Flutter.podspec
 
-# SQLite database files
-*.db
-*.sqlite
-*.sqlite3
+# Credentials and local auth artifacts
+credentials.json
+token.json
+token.pickle
 
-# Virtual environment
-venv/
-ENV/
+# Local build scripts and artifacts
+*.apk
 
-# IDE files
-.idea/
-.vscode/
-*.swp
-*.swo
+# Vercel
+.vercel
 
-# Operating system
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Backend (Flask/Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*.so
+backend/.Python
+backend/.env
+backend/.flaskenv
+backend/.webassets-cache
+backend/venv/
+backend/env/
+backend/ENV/
+backend/instance/
+backend/migrations/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
 
-# Logs
+# Logs and coverage
 logs/
-*.log
-
-# Coverage reports
 htmlcov/
 .tox/
 .coverage
@@ -113,7 +91,3 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *,cover
-backend/.env
-
-
-backend\.env
