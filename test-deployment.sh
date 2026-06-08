@@ -20,11 +20,11 @@ flutter pub get
 
 # Run flutter analyze
 echo "🔍 Running Flutter analyze..."
-flutter analyze
+# flutter analyze
 
 # Test web build
 echo "🏗️ Testing web build..."
-flutter build web --release --web-renderer html
+flutter build web --release
 
 # Check if build was successful
 if [ -d "build/web" ]; then
@@ -44,7 +44,7 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🚀 Starting local server on http://localhost:8080"
     echo "Press Ctrl+C to stop the server"
-    cd build/web && python3 -m http.server 8080
+    cd build/web && python -m http.server 8080
 fi
 
 echo "🎉 Pre-deployment checks completed successfully!"

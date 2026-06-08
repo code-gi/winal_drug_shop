@@ -507,7 +507,7 @@ class _AboutUsScreenState extends State<AboutUsScreen>
     );
   }
 
-  Widget _buildSocialButton(IconData icon, Color color) {
+  Widget _buildSocialButton(FaIconData icon, Color color) {
     String url = '';
 
     if (icon == FontAwesomeIcons.facebook) {

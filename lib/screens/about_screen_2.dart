@@ -483,7 +483,7 @@ class _EnhancedAboutUsScreenState extends State<EnhancedAboutUsScreen>
     );
   }
 
-  static Widget _buildSocialIcon(IconData icon) {
+  static Widget _buildSocialIcon(FaIconData icon) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
