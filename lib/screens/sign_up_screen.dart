@@ -111,13 +111,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (phoneNumber.isEmpty) {
                         return "Enter your mobile number";
                       }
-                      if (!RegExp(r'^\+?[0-9]+$').hasMatch(phoneNumber)) {
-                        return "Use digits only, with + at the start if needed";
-                      }
-                      final digitsOnly =
-                          phoneNumber.replaceAll(RegExp(r'\D'), '');
-                      if (digitsOnly.length < 10) {
-                        return "Phone number must be at least 10 digits";
+                      if (!RegExp(r'^(?:\+256|0)7\d{8}$').hasMatch(phoneNumber)) {
+                        return "Use a valid Ugandan mobile number like 0701234567 or +256701234567";
                       }
                       return null;
                     },
@@ -301,7 +296,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         firstName: firstName,
         lastName: lastName,
         phoneNumber: _normalizePhoneNumber(_mobileNumberController.text),
-        dateOfBirth: _dateOfBirthController.text,
+        dateOfBirth: _formatDateForApi(_dateOfBirthController.text),
       );
 
       if (!mounted) return;
@@ -369,6 +364,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return '+${trimmed.substring(1).replaceAll(RegExp(r'\D'), '')}';
     }
     return trimmed.replaceAll(RegExp(r'\D'), '');
+  }
+
+  String _formatDateForApi(String displayDate) {
+    final trimmed = displayDate.trim();
+    final parts = trimmed.split('/');
+
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+
+      if (day != null && month != null && year != null) {
+        final date = DateTime(year, month, day);
+        if (date.year == year && date.month == month && date.day == day) {
+          return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        }
+      }
+    }
+
+    return trimmed;
   }
 
   // Input Decoration

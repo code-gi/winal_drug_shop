@@ -10,7 +10,7 @@ class CategoryProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   final List<String> _fallbackUrls = [
-    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'https://winal-backend.vercel.app', // Primary cloud-hosted URL
     'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
     'http://localhost:5000', // Local development
     'http://10.0.2.2:5000' // Android emulator to host loopback

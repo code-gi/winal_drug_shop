@@ -36,11 +36,11 @@ class UserSchema(Schema):
     phone_number = fields.Str(
         required=False,
         validate=validate.Regexp(
-            r'^\+?\d{10,15}$',
-            error="Phone number must be at least 10 digits"
+            r'^(?:\+256|0)7\d{8}$',
+            error="Phone number must be a valid Ugandan mobile number"
         ),
         error_messages={
-            'invalid': 'Phone number must be at least 10 digits'
+            'invalid': 'Phone number must be a valid Ugandan mobile number'
         }
     )
     date_of_birth = fields.Date(

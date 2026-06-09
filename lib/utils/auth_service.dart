@@ -6,7 +6,7 @@ import 'dart:developer' as developer;
 class AuthService {
   // Base URLs for the Flask backend API with fallbacks
   final List<String> baseUrls = [
-    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'https://winal-backend.vercel.app', // Primary cloud-hosted URL
     'https://winaldrugshop-backend.onrender.com', // Alternative cloud URL
     'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
     'http://localhost:5000', // Local development
@@ -14,7 +14,7 @@ class AuthService {
   ];
   // Current working base URL
   String _currentBaseUrl =
-      'https://winal-backend.onrender.com'; // Default to primary
+      'https://winal-backend.vercel.app'; // Default to primary
 
   // Getter for the current base URL
   String get baseUrl => _currentBaseUrl;

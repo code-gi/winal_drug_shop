@@ -24,7 +24,7 @@ class _FarmActivitiesScreenState extends State<FarmActivitiesScreen> {
     try {
       print('Fetching farm activities...');
       final response = await http.get(
-          Uri.parse('https://winal-backend.onrender.com/api/farm-activities'));
+          Uri.parse('https://winal-backend.vercel.app/api/farm-activities'));
       print('Response status code: ${response.statusCode}');
       print('Response body: ${response.body}');
 

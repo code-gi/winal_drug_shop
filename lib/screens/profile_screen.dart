@@ -436,7 +436,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               isEditable: _isEditing,
               keyboardType: TextInputType.phone,
               validator: (value) =>
-                  value!.isEmpty ? 'Phone number is required' : null,
+                value!.isEmpty
+                  ? 'Phone number is required'
+                  : RegExp(r'^(?:\+256|0)7\d{8}$').hasMatch(value.trim())
+                    ? null
+                    : 'Use a valid Ugandan mobile number like 0701234567 or +256701234567',
             ),
             const Divider(),
             _buildProfileField(

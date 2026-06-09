@@ -7,7 +7,7 @@ class EmailService {
 
   // Use the Render.com hosted backend URL by default instead of localhost
   EmailService({String? baseUrl})
-      : _baseUrl = baseUrl ?? 'https://winal-backend.onrender.com';
+      : _baseUrl = baseUrl ?? 'https://winal-backend.vercel.app';
 
   /// Validates if Gmail API credentials are set up correctly
   Future<bool> validateApiKey() async {

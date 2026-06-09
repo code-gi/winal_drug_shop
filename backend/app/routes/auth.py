@@ -20,6 +20,19 @@ from app.utils.error_formatting import format_validation_errors
 
 auth_bp = Blueprint('auth', __name__)
 
+
+def _parse_date_of_birth(value):
+    if not isinstance(value, str):
+        raise ValueError('Invalid date format')
+
+    for date_format in ('%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y'):
+        try:
+            return datetime.strptime(value, date_format).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+
+    raise ValueError('Invalid date format')
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """Register a new user"""
@@ -31,13 +44,11 @@ def register():
     # Convert date format if provided
     if 'date_of_birth' in data:
         try:
-            # Convert from "M/D/YYYY" to "YYYY-MM-DD"
-            dob = datetime.strptime(data['date_of_birth'], '%m/%d/%Y')
-            data['date_of_birth'] = dob.strftime('%Y-%m-%d')        
+            data['date_of_birth'] = _parse_date_of_birth(data['date_of_birth'])
         except ValueError as e:
             return jsonify({
                 'message': 'Invalid date format',
-                'error': 'Date must be in format MM/DD/YYYY'
+                'error': 'Date must be in format YYYY-MM-DD, MM/DD/YYYY, or DD/MM/YYYY'
             }), 400
 
     print(f"Registration request data: {data}")  # Debug print

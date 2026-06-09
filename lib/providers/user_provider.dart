@@ -15,7 +15,7 @@ class UserProvider extends ChangeNotifier {
     'http://192.168.43.57:5000',
     'http://10.0.2.2:5000',
     'http://localhost:5000',
-    'https://winal-backend.onrender.com'
+    'https://winal-backend.vercel.app'
   ];
 
   // Get token from SharedPreferences
@@ -248,7 +248,7 @@ class UserProvider extends ChangeNotifier {
         return {'success': false, 'message': 'Not authenticated'};
       }
 
-      final baseUrl = 'https://winal-backend.onrender.com';
+      final baseUrl = 'https://winal-backend.vercel.app';
       final response = await http.put(
         Uri.parse('$baseUrl/api/users/${user.id}/'),
         headers: {
@@ -288,7 +288,7 @@ class UserProvider extends ChangeNotifier {
         return {'success': false, 'message': 'Not authenticated'};
       }
 
-      final baseUrl = 'https://winal-backend.onrender.com';
+      final baseUrl = 'https://winal-backend.vercel.app';
       final response = await http.delete(
         Uri.parse('$baseUrl/api/users/$id/'),
         headers: {

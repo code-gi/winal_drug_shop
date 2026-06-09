@@ -5,11 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class MedicationService {
   // Base URL for the Flask backend API - now hosted on Render.com
-  final String baseUrl = 'https://winal-backend.onrender.com';
+  final String baseUrl = 'https://winal-backend.vercel.app';
 
   // Alternative server URLs to try if the primary one fails
   final List<String> fallbackUrls = [
-    'https://winal-backend.onrender.com', // Primary cloud-hosted URL
+    'https://winal-backend.vercel.app', // Primary cloud-hosted URL
     'http://192.168.43.57:5000', // Legacy mobile hotspot (backup)
     'http://localhost:5000', // Local development
     'http://10.0.2.2:5000' // Android emulator to host loopback
