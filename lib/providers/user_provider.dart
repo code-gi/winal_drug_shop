@@ -68,7 +68,8 @@ class UserProvider extends ChangeNotifier {
       User(
         id: 1,
         email: 'admin@example.com',
-        name: 'Admin User',
+        firstName: 'Admin',
+        lastName: 'User',
         role: 'admin',
         createdAt: DateTime.now().subtract(const Duration(days: 30)),
         phone: '+123456789',
@@ -79,7 +80,8 @@ class UserProvider extends ChangeNotifier {
       User(
         id: 2,
         email: 'customer@example.com',
-        name: 'Example Customer',
+        firstName: 'Example',
+        lastName: 'Customer',
         role: 'customer',
         createdAt: DateTime.now().subtract(const Duration(days: 15)),
         phone: '+987654321',
@@ -90,7 +92,8 @@ class UserProvider extends ChangeNotifier {
       User(
         id: 3,
         email: 'inactive@example.com',
-        name: 'Inactive User',
+        firstName: 'Inactive',
+        lastName: 'User',
         role: 'customer',
         createdAt: DateTime.now().subtract(const Duration(days: 45)),
         phone: '+111222333',

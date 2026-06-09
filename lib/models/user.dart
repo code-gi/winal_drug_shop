@@ -1,7 +1,8 @@
 class User {
   final int id;
   final String email;
-  final String name;
+  final String firstName;
+  final String lastName;
   final String role;
   final DateTime createdAt;
   final String phone;
@@ -12,7 +13,8 @@ class User {
   User({
     required this.id,
     required this.email,
-    required this.name,
+    required this.firstName,
+    required this.lastName,
     required this.role,
     required this.createdAt,
     required this.phone,
@@ -21,12 +23,25 @@ class User {
     this.orderCount = 0,
   });
 
+  String get name => '$firstName $lastName'.trim();
+
   // Create a user from JSON data
   factory User.fromJson(Map<String, dynamic> json) {
+    final fullName = (json['name'] ?? '').toString().trim();
+    final parsedNameParts =
+        fullName.isNotEmpty ? fullName.split(RegExp(r'\s+')) : [];
+
     return User(
       id: json['id'] ?? 0,
       email: json['email'] ?? '',
-      name: json['name'] ?? '',
+      firstName: (json['first_name'] ?? json['firstName'] ??
+              (parsedNameParts.isNotEmpty ? parsedNameParts.first : ''))
+          .toString(),
+      lastName: (json['last_name'] ?? json['lastName'] ??
+              (parsedNameParts.length > 1
+                  ? parsedNameParts.sublist(1).join(' ')
+                  : ''))
+          .toString(),
       role: json['role'] ?? 'customer',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -43,7 +58,8 @@ class User {
     return {
       'id': id,
       'email': email,
-      'name': name,
+      'first_name': firstName,
+      'last_name': lastName,
       'role': role,
       'created_at': createdAt.toIso8601String(),
       'phone': phone,
@@ -57,7 +73,8 @@ class User {
   User copyWith({
     int? id,
     String? email,
-    String? name,
+    String? firstName,
+    String? lastName,
     String? role,
     DateTime? createdAt,
     String? phone,
@@ -68,7 +85,8 @@ class User {
     return User(
       id: id ?? this.id,
       email: email ?? this.email,
-      name: name ?? this.name,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
       phone: phone ?? this.phone,

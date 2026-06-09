@@ -22,7 +22,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   bool _isEditMode = false;
 
   // Form controllers
-  late TextEditingController _nameController;
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
@@ -36,7 +37,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   void _initFormControllers() {
-    _nameController = TextEditingController(text: widget.user.name);
+    _firstNameController =
+        TextEditingController(text: widget.user.firstName);
+    _lastNameController = TextEditingController(text: widget.user.lastName);
     _emailController = TextEditingController(text: widget.user.email);
     _phoneController = TextEditingController(text: widget.user.phone);
     _addressController = TextEditingController(text: widget.user.address);
@@ -46,7 +49,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
@@ -74,7 +78,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
     try {
       final updatedUser = widget.user.copyWith(
-        name: _nameController.text.trim(),
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
         address: _addressController.text.trim(),
@@ -254,19 +259,48 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       if (_isEditMode)
-                                        TextFormField(
-                                          controller: _nameController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Name',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          validator: (value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'Please enter a name';
-                                            }
-                                            return null;
-                                          },
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller:
+                                                    _firstNameController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  labelText: 'First Name',
+                                                  border:
+                                                      OutlineInputBorder(),
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Please enter a first name';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller:
+                                                    _lastNameController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                  labelText: 'Last Name',
+                                                  border:
+                                                      OutlineInputBorder(),
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Please enter a last name';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            ),
+                                          ],
                                         )
                                       else
                                         Text(
