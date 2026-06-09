@@ -27,17 +27,24 @@ class AuthProvider extends ChangeNotifier {
 
   // Get error message for a specific field
   String? getFieldError(String fieldName) {
+    final errors = getFieldErrors(fieldName);
+    return errors.isNotEmpty ? errors.join('\n') : null;
+  }
+
+  // Get all error messages for a specific field
+  List<String> getFieldErrors(String fieldName) {
     if (_fieldErrors == null || !_fieldErrors!.containsKey(fieldName)) {
-      return null;
+      return [];
     }
-    
+
     final fieldError = _fieldErrors![fieldName];
-    if (fieldError is Map<String, dynamic> && fieldError.containsKey('errors')) {
+    if (fieldError is Map<String, dynamic> &&
+        fieldError.containsKey('errors')) {
       final errors = fieldError['errors'] as List<dynamic>;
-      return errors.isNotEmpty ? errors.first.toString() : null;
+      return errors.map((error) => error.toString()).toList();
     }
-    
-    return fieldError.toString();
+
+    return [fieldError.toString()];
   }
 
   // Get requirement message for a specific field
@@ -45,12 +52,18 @@ class AuthProvider extends ChangeNotifier {
     if (_fieldErrors == null || !_fieldErrors!.containsKey(fieldName)) {
       return null;
     }
-    
+
     final fieldError = _fieldErrors![fieldName];
-    if (fieldError is Map<String, dynamic> && fieldError.containsKey('requirement')) {
-      return fieldError['requirement'].toString();
+    if (fieldError is Map<String, dynamic> &&
+        fieldError.containsKey('requirement')) {
+      final requirement = fieldError['requirement'].toString();
+      final errors = getFieldErrors(fieldName);
+      if (fieldName == 'password' || errors.contains(requirement)) {
+        return null;
+      }
+      return requirement;
     }
-    
+
     return null;
   }
 
@@ -74,6 +87,7 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
   // Login method
   Future<bool> login(String email, String password) async {
     _isLoading = true;
@@ -98,6 +112,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     return result['success'];
   }
+
   // Register method
   Future<bool> register({
     required String email,
@@ -133,6 +148,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     return result['success'];
   }
+
   // Logout method
   Future<void> logout() async {
     await _authService.logout();
@@ -193,6 +209,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     return result['success'];
   }
+
   // Clear error message
   void clearError() {
     _errorMessage = null;

@@ -17,10 +17,10 @@ def format_validation_errors(validation_errors, field_requirements=None):
     # Default field requirements
     default_requirements = {
         'email': 'Please enter a valid email address',
-        'password': 'Password must be at least 8 characters with uppercase, lowercase, and number',
+        'password': 'Only the missing password requirements are shown',
         'first_name': 'First name is required and cannot be empty',
         'last_name': 'Last name is required and cannot be empty',
-        'phone_number': 'Please enter a valid phone number',
+        'phone_number': 'Phone number must be at least 10 digits and can start with +',
         'date_of_birth': 'Date of birth must be in YYYY-MM-DD format and in the past',
         'confirm_password': 'Password confirmation must match the password'
     }

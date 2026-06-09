@@ -15,13 +15,6 @@ class UserSchema(Schema):
     password = fields.Str(
         required=True, 
         load_only=True,
-        validate=[
-            validate.Length(min=8, error="Password must be at least 8 characters long"),
-            validate.Regexp(
-                r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)",
-                error="Password must contain at least one uppercase letter, one lowercase letter, and one number"
-            )
-        ],
         error_messages={
             'required': 'Password is required'
         }
@@ -43,11 +36,11 @@ class UserSchema(Schema):
     phone_number = fields.Str(
         required=False,
         validate=validate.Regexp(
-            r'^[\+]?[1-9][\d]{0,15}$',
-            error="Please enter a valid phone number"
+            r'^\+?\d{10,15}$',
+            error="Phone number must be at least 10 digits"
         ),
         error_messages={
-            'invalid': 'Please enter a valid phone number'
+            'invalid': 'Phone number must be at least 10 digits'
         }
     )
     date_of_birth = fields.Date(
@@ -69,14 +62,17 @@ class UserSchema(Schema):
         # Validate password complexity if password is provided
         if 'password' in data:
             password = data['password']
+            password_errors = []
             if len(password) < 8:
-                errors['password'] = ['Password must be at least 8 characters long']
-            elif not re.search(r'[a-z]', password):
-                errors['password'] = ['Password must contain at least one lowercase letter']
-            elif not re.search(r'[A-Z]', password):
-                errors['password'] = ['Password must contain at least one uppercase letter']
-            elif not re.search(r'\d', password):
-                errors['password'] = ['Password must contain at least one number']
+                password_errors.append('Password must be at least 8 characters long')
+            if not re.search(r'[a-z]', password):
+                password_errors.append('Password must contain at least one lowercase letter')
+            if not re.search(r'[A-Z]', password):
+                password_errors.append('Password must contain at least one uppercase letter')
+            if not re.search(r'\d', password):
+                password_errors.append('Password must contain at least one number')
+            if password_errors:
+                errors['password'] = password_errors
         
         # Validate date of birth (must be in the past)
         if 'date_of_birth' in data and data['date_of_birth']:

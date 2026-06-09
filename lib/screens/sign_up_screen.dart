@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:winal_front_end/utils/auth_provider.dart';
 import 'package:winal_front_end/screens/login_screen.dart';
 import 'package:winal_front_end/services/email_service.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -15,7 +16,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers for capturing user input
-  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _mobileNumberController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
@@ -23,7 +25,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // State for password visibility
   bool _obscurePassword = true;
-  bool _isLoading = false;
 
   // Create an instance of EmailService
   final EmailService _emailService = EmailService();
@@ -51,14 +52,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       color: Colors.blue,
                     ),
                   ),
-                  const SizedBox(height: 20),                  // Full Name Field
+                  const SizedBox(height: 20),
+
+                  // First Name Field
                   _buildFormField(
-                    controller: _fullNameController,
-                    hintText: "Full name",
-                    fieldKey: "first_name", // Backend uses first_name for validation
+                    controller: _firstNameController,
+                    hintText: "First Name",
+                    fieldKey: "first_name",
                     authProvider: authProvider,
                     validator: (value) =>
-                        value!.isEmpty ? "Enter your full name" : null,
+                        value!.trim().isEmpty ? "Enter your first name" : null,
+                  ),
+                  const SizedBox(height: 15),
+
+                  // Last Name Field
+                  _buildFormField(
+                    controller: _lastNameController,
+                    hintText: "Last Name",
+                    fieldKey: "last_name",
+                    authProvider: authProvider,
+                    validator: (value) =>
+                        value!.trim().isEmpty ? "Enter your last name" : null,
                   ),
                   const SizedBox(height: 15),
 
@@ -89,8 +103,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     fieldKey: "phone_number",
                     authProvider: authProvider,
                     keyboardType: TextInputType.phone,
-                    validator: (value) =>
-                        value!.isEmpty ? "Enter your mobile number" : null,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                    ],
+                    validator: (value) {
+                      final phoneNumber = value?.trim() ?? '';
+                      if (phoneNumber.isEmpty) {
+                        return "Enter your mobile number";
+                      }
+                      if (!RegExp(r'^\+?[0-9]+$').hasMatch(phoneNumber)) {
+                        return "Use digits only, with + at the start if needed";
+                      }
+                      final digitsOnly =
+                          phoneNumber.replaceAll(RegExp(r'\D'), '');
+                      if (digitsOnly.length < 10) {
+                        return "Phone number must be at least 10 digits";
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
 
@@ -103,7 +133,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     readOnly: true,
                     onTap: () => _selectDate(context),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today, color: Colors.grey),
+                      icon:
+                          const Icon(Icons.calendar_today, color: Colors.grey),
                       onPressed: () => _selectDate(context),
                     ),
                     validator: (value) =>
@@ -132,17 +163,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       },
                     ),
                     validator: (value) {
-                      if (value!.isEmpty) {
-                        return "Enter a password";
-                      }
-                      if (value.length < 8) {
-                        return "Password must be at least 8 characters";
-                      }
-                      return null;
+                      final errors = _getPasswordErrors(value ?? '');
+                      return errors.isEmpty ? null : errors.join('\n');
                     },
                   ),
-                  const SizedBox(height: 30),                  // Error message and field errors summary
-                  if (authProvider.errorMessage != null || authProvider.fieldErrors != null)
+                  const SizedBox(height: 30),
+
+                  // Error message and field errors summary
+                  if (authProvider.errorMessage != null ||
+                      authProvider.fieldErrors != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 15),
                       padding: const EdgeInsets.all(12),
@@ -174,24 +203,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                             const SizedBox(height: 4),
                             ...authProvider.fieldErrors!.entries.map((entry) {
-                              final fieldName = entry.value['field_name'] ?? entry.key;
-                              final errors = entry.value['errors'] as List<dynamic>? ?? [];
+                              final fieldName =
+                                  entry.value['field_name'] ?? entry.key;
+                              final errors =
+                                  entry.value['errors'] as List<dynamic>? ?? [];
+                              final message = errors.isNotEmpty
+                                  ? errors
+                                      .map((error) => error.toString())
+                                      .join('; ')
+                                  : 'Invalid';
                               return Padding(
                                 padding: const EdgeInsets.only(left: 8, top: 2),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("• ", style: TextStyle(color: Colors.red.shade600)),
+                                    Text("- ",
+                                        style: TextStyle(
+                                            color: Colors.red.shade600)),
                                     Expanded(
                                       child: Text(
-                                        "$fieldName: ${errors.isNotEmpty ? errors.first : 'Invalid'}",
-                                        style: TextStyle(color: Colors.red.shade600),
+                                        "$fieldName: $message",
+                                        style: TextStyle(
+                                            color: Colors.red.shade600),
                                       ),
                                     ),
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ],
                       ),
@@ -204,7 +243,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: ElevatedButton(
                       onPressed: authProvider.isLoading
                           ? null
-                          : () => _handleSignUp(context, authProvider),
+                          : () => _handleSignUp(authProvider),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
@@ -250,46 +289,48 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   // Handle sign up
-  Future<void> _handleSignUp(
-      BuildContext context, AuthProvider authProvider) async {
+  Future<void> _handleSignUp(AuthProvider authProvider) async {
     if (_formKey.currentState!.validate()) {
-      // Extract first and last name from the full name
-      List<String> nameParts = _fullNameController.text.split(' ');
-      String firstName = nameParts[0];
-      String lastName =
-          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+      final fullName = '$firstName $lastName'.trim();
 
       final success = await authProvider.register(
-        email: _emailController.text,
+        email: _emailController.text.trim(),
         password: _passwordController.text,
         firstName: firstName,
         lastName: lastName,
-        phoneNumber: _mobileNumberController.text,
+        phoneNumber: _normalizePhoneNumber(_mobileNumberController.text),
         dateOfBirth: _dateOfBirthController.text,
       );
+
+      if (!mounted) return;
 
       if (success) {
         // Send welcome email
         try {
           final success = await _emailService.sendTestEmail(
-            to: _emailController.text,
+            to: _emailController.text.trim(),
             subject: 'Welcome to Winal Drug Shop!',
-            content: 'Thank you for signing up, ${_fullNameController.text}!',
+            content: 'Thank you for signing up, $fullName!',
           );
 
           if (success) {
-            print(
-                'Welcome email sent successfully to ${_emailController.text}');
+            debugPrint(
+                'Welcome email sent successfully to ${_emailController.text.trim()}');
           } else {
-            print('Failed to send welcome email');
+            debugPrint('Failed to send welcome email');
           }
         } catch (e) {
-          print('Error sending welcome email: $e');
+          debugPrint('Error sending welcome email: $e');
         }
+
+        if (!mounted) return;
 
         _showSignUpSuccess(context);
         // Navigate to login screen after short delay
         Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -299,16 +340,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Extract initials from the full name
-  String _getInitials(String fullName) {
-    List<String> names = fullName.split(" ");
-    String initials = "";
-    for (var name in names) {
-      if (name.isNotEmpty) {
-        initials += name[0].toUpperCase();
-      }
+  List<String> _getPasswordErrors(String password) {
+    if (password.isEmpty) {
+      return ["Enter a password"];
     }
-    return initials;
+
+    final errors = <String>[];
+    if (password.length < 8) {
+      errors.add(
+        "Add at least ${8 - password.length} more character${password.length == 7 ? '' : 's'}",
+      );
+    }
+    if (!RegExp(r'[a-z]').hasMatch(password)) {
+      errors.add("Add a lowercase letter");
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      errors.add("Add an uppercase letter");
+    }
+    if (!RegExp(r'\d').hasMatch(password)) {
+      errors.add("Add a number");
+    }
+    return errors;
+  }
+
+  String _normalizePhoneNumber(String phoneNumber) {
+    final trimmed = phoneNumber.trim();
+    if (trimmed.startsWith('+')) {
+      return '+${trimmed.substring(1).replaceAll(RegExp(r'\D'), '')}';
+    }
+    return trimmed.replaceAll(RegExp(r'\D'), '');
   }
 
   // Input Decoration
@@ -348,7 +408,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _dateOfBirthController.text =
             "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
       });
-    }  }
+    }
+  }
 
   // Helper method to build form fields with backend error support
   Widget _buildFormField({
@@ -362,6 +423,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     bool readOnly = false,
     VoidCallback? onTap,
     Widget? suffixIcon,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     final hasBackendError = authProvider.hasFieldError(fieldKey);
     final backendError = authProvider.getFieldError(fieldKey);
@@ -391,6 +453,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           obscureText: obscureText,
           readOnly: readOnly,
           onTap: onTap,
+          inputFormatters: inputFormatters,
           validator: validator,
         ),
         if (hasBackendError && backendError != null)
@@ -424,7 +487,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _mobileNumberController.dispose();
     _dateOfBirthController.dispose();
