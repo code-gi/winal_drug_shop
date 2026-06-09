@@ -12,9 +12,9 @@ class UserProvider extends ChangeNotifier {
 
   // Fallback URLs
   final List<String> _fallbackUrls = [
-    // 'http://192.168.43.57:5000',
-    // 'http://10.0.2.2:5000',
-    // 'http://localhost:5000',
+    'http://192.168.43.57:5000',
+    'http://10.0.2.2:5000',
+    'http://localhost:5000',
     'https://winal-backend.onrender.com'
   ];
 

@@ -33,7 +33,6 @@ migrate_working_dir/
 .pub/
 /build/
 
-
 # Symbolication related
 app.*.symbols
 
@@ -44,13 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/app/.cxx/
 
-# Gmail API credentials
-credentials.json
-token.json
-token.pickle
-.apk
-.sh
 # iOS build artifacts
 /ios/Pods/
 /ios/Runner.xcworkspace/
@@ -59,11 +53,41 @@ token.pickle
 /ios/Flutter/Flutter.framework
 /ios/Flutter/Flutter.podspec
 
-# vercel
-.vercel
-# markdown
-.markdownlintcache
-.md
-.json
-backend/
+# Credentials and local auth artifacts
+credentials.json
+token.json
+token.pickle
 
+# Local build scripts and artifacts
+*.apk
+
+# Vercel
+.vercel
+
+# Backend (Flask/Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*.so
+backend/.Python
+backend/.env
+backend/.flaskenv
+backend/.webassets-cache
+backend/venv/
+backend/env/
+backend/ENV/
+backend/instance/
+backend/migrations/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Logs and coverage
+logs/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
